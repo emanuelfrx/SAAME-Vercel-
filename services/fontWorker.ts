@@ -1,5 +1,5 @@
 
-import opentype from 'https://unpkg.com/opentype.js@1.3.4/dist/opentype.module.js';
+import * as opentype from 'opentype.js';
 
 // Re-implementing necessary logic inside worker to avoid complex imports
 // during the transition, as workers have separate scopes.
@@ -99,15 +99,38 @@ const ensureGlyphNames = (font) => {
 };
 
 const prepareFontForExport = (font, familyName) => {
-    font.names = {};
     const nameStr = familyName.replace(/[^a-zA-Z0-9- ]/g, ''); 
     const psName = nameStr.replace(/\s/g, '');
-    font.names.fontFamily = { en: nameStr };
-    font.names.fontSubfamily = { en: 'Regular' };
-    font.names.fullName = { en: nameStr };
-    font.names.postScriptName = { en: psName };
-    font.names.uniqueID = { en: `SAAME:${psName}:${Date.now()}` };
-    font.names.version = { en: 'Version 1.0 SAAME' };
+    
+    // CRITICAL FIX: Wipe and assign fully structured platform names to prevent "Cannot read properties of undefined (reading 'fontFamily')" in opentype.js 2.x
+    // We only include valid platform keys like unicode, macintosh, windows at the top level of font.names.
+    // Adding top level keys like fontFamily directly on font.names will cause opentype.js to treat them as platforms and crash.
+    font.names = {
+        unicode: {
+            fontFamily: { en: nameStr },
+            fontSubfamily: { en: 'Regular' },
+            fullName: { en: nameStr },
+            postScriptName: { en: psName },
+            uniqueID: { en: `SAAME:${psName}:${Date.now()}` },
+            version: { en: 'Version 1.0 SAAME' }
+        },
+        macintosh: {
+            fontFamily: { en: nameStr },
+            fontSubfamily: { en: 'Regular' },
+            fullName: { en: nameStr },
+            postScriptName: { en: psName },
+            uniqueID: { en: `SAAME:${psName}:${Date.now()}` },
+            version: { en: 'Version 1.0 SAAME' }
+        },
+        windows: {
+            fontFamily: { en: nameStr },
+            fontSubfamily: { en: 'Regular' },
+            fullName: { en: nameStr },
+            postScriptName: { en: psName },
+            uniqueID: { en: `SAAME:${psName}:${Date.now()}` },
+            version: { en: 'Version 1.0 SAAME' }
+        }
+    };
 };
 
 const setGlyphSB = (font, glyphName, lsb, rsb) => {
