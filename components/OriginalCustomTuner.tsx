@@ -251,7 +251,7 @@ export const OriginalCustomTuner: React.FC<{
                                         title="Clique para editar sequência"
                                     >
                                         <div className="w-full">
-                                            {modalTestText.split(',').map(s => s.trim()).filter(Boolean).map((word, wordIdx) => {
+                                            {modalTestText.split(/[\s,]+/).map(s => s.trim()).filter(Boolean).map((word, wordIdx) => {
                                                 const chars = word.split('');
                                                 return (
                                                     <div 

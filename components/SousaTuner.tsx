@@ -97,6 +97,7 @@ const SousaMasterBlock: React.FC<SousaBlockProps> = React.memo(({ char, title, c
     const currentRsb = settings[char].rsb;
 
     const [isEditing, setIsEditing] = useState(false);
+    const [editValue, setEditValue] = useState('');
 
     // React state for custom words of each block, loaded/saved in localStorage if needed
     const [localWords, setLocalWords] = useState<string[]>(() => {
@@ -187,10 +188,11 @@ const SousaMasterBlock: React.FC<SousaBlockProps> = React.memo(({ char, title, c
                         <div className="flex flex-col items-center justify-center w-full py-2" onClick={(e) => e.stopPropagation()}>
                             <input 
                                 type="text"
-                                value={localWords.join(', ')}
+                                value={editValue}
                                 onChange={(e) => {
                                     const val = e.target.value;
-                                    const wordsList = val.split(',').map(s => s.trim()).filter(Boolean);
+                                    setEditValue(val);
+                                    const wordsList = val.split(/[\s,]+/).filter(Boolean);
                                     handleWordsChange(wordsList);
                                 }}
                                 onKeyDown={(e) => {
@@ -208,7 +210,10 @@ const SousaMasterBlock: React.FC<SousaBlockProps> = React.memo(({ char, title, c
                     ) : (
                         <div 
                             className="text-center py-1 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-900/30 rounded-xl relative group/preview min-h-[44px] flex flex-col justify-center items-center"
-                            onClick={() => setIsEditing(true)}
+                            onClick={() => {
+                                setEditValue(localWords.join(', '));
+                                setIsEditing(true);
+                            }}
                             title="Clique para editar sequência"
                         >
                             <div className="w-full">
@@ -427,6 +432,7 @@ export const SousaTuner: React.FC<SousaTunerProps> = ({ settings, onSettingsChan
   }, [overrideChar]);
 
   const [isOverrideEditing, setIsOverrideEditing] = useState(false);
+  const [overrideEditValue, setOverrideEditValue] = useState('');
 
   const currentOverrideWords = overrideWordsState[overrideChar] || overrideContext;
 
@@ -692,10 +698,11 @@ export const SousaTuner: React.FC<SousaTunerProps> = ({ settings, onSettingsChan
                                 <div className="flex flex-col items-center justify-center w-full py-2" onClick={(e) => e.stopPropagation()}>
                                     <input 
                                         type="text"
-                                        value={currentOverrideWords.join(', ')}
+                                        value={overrideEditValue}
                                         onChange={(e) => {
                                             const val = e.target.value;
-                                            const wordsList = val.split(',').map(s => s.trim()).filter(Boolean);
+                                            setOverrideEditValue(val);
+                                            const wordsList = val.split(/[\s,]+/).filter(Boolean);
                                             handleOverrideWordsChange(wordsList);
                                         }}
                                         onKeyDown={(e) => {
@@ -713,7 +720,10 @@ export const SousaTuner: React.FC<SousaTunerProps> = ({ settings, onSettingsChan
                             ) : (
                                 <div 
                                     className="text-center py-1 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-900/30 rounded-xl relative group/preview min-h-[44px] flex flex-col justify-center items-center"
-                                    onClick={() => setIsOverrideEditing(true)}
+                                    onClick={() => {
+                                        setOverrideEditValue(currentOverrideWords.join(', '));
+                                        setIsOverrideEditing(true);
+                                    }}
                                     title="Clique para editar sequência"
                                 >
                                     <div className="w-full">
