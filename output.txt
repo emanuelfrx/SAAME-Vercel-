@@ -1,0 +1,2 @@
+94:            className="text-3xl md:text-4xl text-center mb-1 tracking-normal transition-colors whitespace-nowrap overflow-x-auto custom-scrollbar w-full pb-2" 
+736:                                <label className="text-[11px] font-black uppercase tracking-widest dark:text-slate-400 text-slate-600 whitespace-nowrap">SELECIONAR GLIFO:</label>

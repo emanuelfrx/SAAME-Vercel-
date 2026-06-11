@@ -1,0 +1,8 @@
+{
+  "name": "Remix: 10/06 v1  SAAME (Sistema de aplicacao e analise de metodos de espaçamento) Integrado",
+  "description": "Ambiente profissional para ajuste de métricas de glifos (métodos Tracy e Sousa) e análise de espaçamento tipográfico.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
