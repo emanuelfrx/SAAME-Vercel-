@@ -168,25 +168,30 @@ const App: React.FC = () => {
         // Auto-calculate base harmonic spacing
         if (originalState.fontObj) {
             const fontObj = originalState.fontObj;
-            const harmonicH = calculateHarmonicSpacing(fontObj, 'H');
-            const harmonicO = calculateHarmonicSpacing(fontObj, 'O');
-            const harmonicN = calculateHarmonicSpacing(fontObj, 'n');
-            const harmonicOo = calculateHarmonicSpacing(fontObj, 'o');
+            
+            const H_lsb = calculateHarmonicSpacing(fontObj, 'H', 'lsb');
+            const H_rsb = calculateHarmonicSpacing(fontObj, 'H', 'rsb');
+            const O_lsb = calculateHarmonicSpacing(fontObj, 'O', 'lsb');
+            const O_rsb = calculateHarmonicSpacing(fontObj, 'O', 'rsb');
+            const n_lsb = calculateHarmonicSpacing(fontObj, 'n', 'lsb');
+            const n_rsb = calculateHarmonicSpacing(fontObj, 'n', 'rsb');
+            const o_lsb = calculateHarmonicSpacing(fontObj, 'o', 'lsb');
+            const o_rsb = calculateHarmonicSpacing(fontObj, 'o', 'rsb');
             
             initialTracy = {
                 ...tracySettings,
-                H: { lsb: harmonicH, rsb: harmonicH },
-                O: { lsb: harmonicO, rsb: harmonicO },
-                n: { lsb: harmonicN, rsb: Math.round(harmonicN * 0.9) },
-                o: { lsb: harmonicOo, rsb: harmonicOo },
+                H: { lsb: H_lsb, rsb: H_rsb },
+                O: { lsb: O_lsb, rsb: O_rsb },
+                n: { lsb: n_lsb, rsb: n_rsb },
+                o: { lsb: o_lsb, rsb: o_rsb },
             };
             
             initialSousa = {
                 ...sousaSettings,
-                H: { lsb: harmonicH, rsb: harmonicH },
-                O: { lsb: harmonicO, rsb: harmonicO },
-                n: { lsb: harmonicN, rsb: Math.round(harmonicN * 0.9) },
-                o: { lsb: harmonicOo, rsb: harmonicOo },
+                H: { lsb: H_lsb, rsb: H_rsb },
+                O: { lsb: O_lsb, rsb: O_rsb },
+                n: { lsb: n_lsb, rsb: n_rsb },
+                o: { lsb: o_lsb, rsb: o_rsb },
             };
             
             setTracySettings(initialTracy);

@@ -423,13 +423,14 @@ export const MetricTuner: React.FC<MetricTunerProps> = ({ settings, onSettingsCh
   const handleAutoCalc = (char: string) => {
       if (!font || !font.fontObj) return;
       
-      const harmonicSpacing = calculateHarmonicSpacing(font.fontObj, char);
+      const lsb = calculateHarmonicSpacing(font.fontObj, char, 'lsb');
+      const rsb = calculateHarmonicSpacing(font.fontObj, char, 'rsb');
       
       const newSettings = {
           ...localSettings,
           [char]: {
-              lsb: harmonicSpacing,
-              rsb: char === 'n' ? Math.round(harmonicSpacing * 0.9) : harmonicSpacing 
+              lsb,
+              rsb
           }
       };
       setLocalSettings(newSettings);

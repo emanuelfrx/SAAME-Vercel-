@@ -746,64 +746,246 @@ export const getOpenCounterPath = (font: OpenTypeFont, char: string) => {
     return path.toPathData(2);
 };
 
+export const diagnoseFontContext = (font: OpenTypeFont) => {
+    if ((font as any).__saame_context) return (font as any).__saame_context;
+
+    const glyphH = font.charToGlyph('H') || font.charToGlyph('n') || font.charToGlyph('I');
+    if (!glyphH) return { k_massa: 0.35, k_aspecto: 0.8, isItalic: false, upm: 1000, styleCategory: 'STANDARD', avgLsb: 40, baseInternalCounter: 400 };
+
+    const box = glyphH.getBoundingBox();
+    const width = box.x2 - box.x1;
+    let height = box.y2 - box.y1;
+    if (height <= 0) height = font.unitsPerEm || 1000;
+    const upm = font.unitsPerEm || 1000;
+    
+    let internalCounter = 0;
+    const metrics = getCounterMetrics(font, 'H');
+    if (metrics && metrics.counterWidth > 0) {
+        internalCounter = metrics.counterWidth;
+    } else {
+        const char_n = font.charToGlyph('n');
+        if (char_n) {
+            const m_n = getCounterMetrics(font, 'n');
+            if (m_n) internalCounter = m_n.counterWidth;
+        }
+    }
+    
+    if (internalCounter <= 0 || internalCounter >= width) {
+        internalCounter = width * 0.5; // fallback optical balance
+    }
+    
+    let k_massa = 0.35; 
+    if (width > 0 && internalCounter > 0 && width > internalCounter) {
+        k_massa = (width - internalCounter) / width;
+    } else {
+        const weightClass = font.tables.os2?.usWeightClass || 400;
+        k_massa = 0.35 * (weightClass / 400); 
+    }
+    
+    k_massa = Math.max(0.01, Math.min(k_massa, 0.99));
+    const k_aspecto = height > 0 ? width / height : 0.8;
+
+    let isItalic = false;
+    if (font.tables.post && font.tables.post.italicAngle !== 0) {
+        isItalic = true;
+    } else if (font.tables.os2 && (font.tables.os2.fsSelection & 1)) {
+        isItalic = true;
+    } else if (font.tables.head && (font.tables.head.macStyle & 2)) {
+        isItalic = true;
+    }
+    
+    let styleCategory = 'STANDARD';
+    
+    // Script detection: checks if letters generally connect tightly or overlap
+    const ge = font.charToGlyph('e') || font.charToGlyph('a');
+    if (ge) {
+        const rsb = (ge.advanceWidth || 0) - ge.getBoundingBox().x2;
+        if (rsb <= 0) {
+            styleCategory = 'SCRIPT';
+        }
+    }
+    
+    // Display detection: huge variation in LSBs
+    const sampleChars = ['H','O','n','o','a','e','s','t'];
+    let lsbs = [];
+    for (const c of sampleChars) {
+        const g = font.charToGlyph(c);
+        if (g) {
+            const b = g.getBoundingBox();
+            lsbs.push(b.x1);
+        }
+    }
+    if (lsbs.length > 3) {
+        const mean = lsbs.reduce((a, b) => a + b, 0) / lsbs.length;
+        const variance = lsbs.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / lsbs.length;
+        const stdDev = Math.sqrt(variance);
+        if (stdDev > mean * 1.2 && mean > 0) { 
+            styleCategory = 'DISPLAY';
+        }
+    }
+
+    let isSerif = false;
+    const glyphI = font.charToGlyph('I');
+    if (glyphH && glyphI) {
+        const iBox = glyphI.getBoundingBox();
+        const iWidth = iBox.x2 - iBox.x1;
+        const hWidth = box.x2 - box.x1; // box is from glyphH
+        if (hWidth > 0 && (iWidth / hWidth) > 0.25) { // If 'I' is significantly wide compared to 'H'
+            isSerif = true;
+        }
+    }
+
+    const result = { k_massa, k_aspecto, isItalic, isSerif, upm, styleCategory, avgLsb: 0, baseInternalCounter: internalCounter };
+    if (styleCategory === 'DISPLAY') {
+        let sumLsb = 0;
+        let count = 0;
+        for (let i = 65; i <= 90; i++) {
+            const g = font.charToGlyph(String.fromCharCode(i));
+            if (g) {
+                sumLsb += g.getBoundingBox().x1;
+                count++;
+            }
+        }
+        result.avgLsb = count > 0 ? sumLsb / count : (upm * 0.05);
+    }
+
+    (font as any).__saame_context = result;
+    return result;
+};
+
 /**
  * Advanced Auto Spacing Algorithm (Harmony & Legibility Focus)
- * Following Walter Tracy's Principle: Starting point is 50% of the internal counter.
  */
-export const calculateHarmonicSpacing = (font: OpenTypeFont, char: string): number => {
+export const calculateHarmonicSpacing = (font: OpenTypeFont, char: string, side: 'lsb'|'rsb'|'both' = 'both'): number => {
+    const context = diagnoseFontContext(font);
+    
     const glyph = font.charToGlyph(char);
     if (!glyph) return 40; 
 
     const box = glyph.getBoundingBox();
     const width = box.x2 - box.x1;
-    
-    const rounds = ['O', 'o', 'Q', 'C', 'G', 'e', 'c', '0'];
-    const isRound = rounds.includes(char);
 
-    // Use the unified counter metrics to ensure consistency with visualizer
-    const metrics = getCounterMetrics(font, char);
-    let internalCounter = metrics ? metrics.counterWidth : 0;
-    
-    // Fallback if counter couldn't be detected
-    if (internalCounter <= 0) {
-        const weightClass = font.tables.os2?.usWeightClass || 400;
-        const upm = font.unitsPerEm || 1000;
-        const baseStemRatio = 0.12; 
-        const weightFactor = (weightClass / 400); 
-        const estimatedStem = (upm * baseStemRatio) * Math.pow(weightFactor, 0.7); 
-        internalCounter = width - (2 * estimatedStem);
-    }
-    
-    // Safety check for narrow fonts or extreme weights
-    if (internalCounter < width * 0.3) {
-        internalCounter = width * 0.5;
+    // Unidade Base de Respiro: always derived from the master (H/n) counter!
+    const baseCounter = context.baseInternalCounter;
+
+    // Smoother mass multiplier curve.
+    let massMultiplier = 0.30; 
+    if (context.k_massa <= 0.20) {
+        massMultiplier = 0.40; // Light
+    } else if (context.k_massa <= 0.60) {
+        // Linear interpolation from 0.40 to 0.20
+        massMultiplier = 0.40 - ((context.k_massa - 0.20) / 0.40) * (0.40 - 0.20);
+    } else {
+        // Heavy/Black
+        massMultiplier = Math.max(0.08, 0.20 - ((context.k_massa - 0.60) / 0.30) * (0.20 - 0.08));
     }
 
-    // Walter Tracy's starting point: 50% (0.5) of internal counter
-    // User requested "metade da contraforma" (50%) for all master characters
-    let targetSB = internalCounter * 0.5;
+    if (context.styleCategory === 'SCRIPT') {
+        if (side === 'rsb') {
+            return 0; // connecting scripts generally have 0 rsb
+        }
+        massMultiplier *= 0.6; // much tighter LSB for scripts
+    }
 
-    // Ensure it doesn't get too small or too large
-    return Math.max(10, Math.round(targetSB));
+    if (context.styleCategory === 'DISPLAY') {
+        massMultiplier *= 0.8; // display fonts are typically spaced tighter
+    }
+
+    let widthModifier = 1.0;
+    if (context.k_aspecto < 0.6) {
+        widthModifier = 0.90 + ((Math.max(0.3, context.k_aspecto) - 0.3) / 0.3) * (0.95 - 0.90);
+    } else if (context.k_aspecto > 0.9) {
+        widthModifier = 1.05 + ((Math.min(1.2, context.k_aspecto) - 0.9) / 0.3) * (1.10 - 1.05);
+    } else {
+        if (context.k_aspecto <= 0.8) {
+            widthModifier = 0.95 + ((context.k_aspecto - 0.6) / 0.2) * (1.0 - 0.95);
+        } else {
+            widthModifier = 1.0 + ((context.k_aspecto - 0.8) / 0.1) * (1.05 - 1.0);
+        }
+    }
+    widthModifier = Math.max(0.85, Math.min(1.15, widthModifier));
+
+    // Respiro Base (The fundamental building block of Tracy's spacing)
+    let respiroBase = baseCounter * massMultiplier * widthModifier;
+    
+    if (context.isSerif) {
+        respiroBase *= 0.85; // Serifs fill up sidebearing space physically, needing visually tighter spacing
+        if (context.k_massa >= 0.50) {
+            respiroBase *= 1.15; // But bold serifs need extra room so serifs don't crash
+        }
+        if (context.isItalic) {
+            respiroBase *= 1.10; // Italic serifs also need a bit more breathing room
+        }
+    }
+
+    // Apply Tracy Optical Groups & Specificities
+    const rounds = ['O', 'o', 'Q', 'C', 'G', 'e', 'c', '0', 'a'];
+    const diagonals = ['A', 'V', 'W', 'v', 'w', 'y', 'Y'];
+    const semiRounds = ['D', 'B', 'P', 'R', 'p', 'b', 'q', 'd'];
+    const nArch = ['n', 'm', 'h']; // rsb is smaller
+
+    let targetSB = respiroBase;
+
+    // Symmetrical modifications based on character shape
+    if (rounds.includes(char)) {
+        targetSB = respiroBase * 0.80; 
+    } else if (diagonals.includes(char)) {
+        targetSB = respiroBase * 0.25; // Diagonals require much tighter spacing due to large negative space
+    } else if (semiRounds.includes(char)) {
+        if (char === 'd' || char === 'q') {
+            // Left is round, Right is straight
+            if (side === 'lsb') targetSB = respiroBase * 0.80;
+            if (side === 'rsb') targetSB = respiroBase;
+            if (side === 'both') targetSB = respiroBase * 0.90;
+        } else {
+            // Left is straight, Right is round
+            if (side === 'lsb') targetSB = respiroBase;
+            if (side === 'rsb') targetSB = respiroBase * 0.80;
+            if (side === 'both') targetSB = respiroBase * 0.90;
+        }
+    } else if (nArch.includes(char) && side === 'rsb') {
+        targetSB = respiroBase * 0.90; // Arch exits need slightly less space
+    } else if (char === 'u' && side === 'lsb') {
+        targetSB = respiroBase * 0.90; 
+    }
+
+    if (context.isItalic) {
+        targetSB *= 0.95; 
+    }
+
+    if (context.styleCategory === 'OUTLINE') {
+        targetSB += 20;
+    }
+
+    let minSafeSB = 0;
+    
+    if (context.styleCategory !== 'SCRIPT') {
+        // Global minimum for non-script fonts to prevent touching
+        minSafeSB = context.upm * 0.015;
+    }
+
+    if (context.k_massa >= 0.60 && !diagonals.includes(char)) {
+        minSafeSB = Math.max(minSafeSB, context.upm * 0.02); 
+    } else if (diagonals.includes(char)) {
+        minSafeSB = -context.upm * 0.03; // allow slight negative for diagonals to tuck in
+    }
+    
+    return Math.max(minSafeSB, Math.round(targetSB));
 };
 
-/**
- * Returns the target percentage of the counter width based on character type
- */
 export const getTargetSBPercentage = (char: string): number => {
-    // User requested 50% for all master characters
     return 50;
 };
 
 export const calculateSousaDefaults = (font: OpenTypeFont) => {
-    const n = calculateHarmonicSpacing(font, 'n');
-    const o = calculateHarmonicSpacing(font, 'o');
-    const H = calculateHarmonicSpacing(font, 'H');
-    const O = calculateHarmonicSpacing(font, 'O');
+    const n_lsb = calculateHarmonicSpacing(font, 'n', 'lsb');
+    const n_rsb = calculateHarmonicSpacing(font, 'n', 'rsb');
+    const o = calculateHarmonicSpacing(font, 'o', 'both');
+    const H = calculateHarmonicSpacing(font, 'H', 'both');
+    const O = calculateHarmonicSpacing(font, 'O', 'both');
 
     return {
-        // n right side is slightly smaller than left side (Tracy's arch recommendation)
-        n: { lsb: n, rsb: Math.round(n * 0.9) }, 
+        n: { lsb: n_lsb, rsb: Math.round(n_rsb * 0.9) }, 
         o: { lsb: o, rsb: o }, 
         H: { lsb: H, rsb: H }, 
         O: { lsb: O, rsb: O }  
