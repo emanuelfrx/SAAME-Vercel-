@@ -47,9 +47,9 @@ interface AnalysisCanvasProps {
       tracy: string;
   };
   onUpdateGlyph?: (method: MethodType, char: string, lsb: number | null, rsb: number | null) => void;
-  selectedChar: string;
-  onCharSelect: (char: string) => void;
-  lastEditedMethod: MethodType;
+  selectedChar?: string;
+  onCharSelect?: (char: string) => void;
+  lastEditedMethod?: MethodType;
 }
 
 const PARAGRAPH_TEXT = "Hook, a do. Joe, succor asclepias cod efferent. Fans rolls, oceania leets boise sentimentalisation, geologian pedicels, plowtail, dip em kinins tetracerous, non a revisal, at. Clamer goon, downstrokes imputative blip ballonne, yakin ouenite, he. Em arapunga, oat, a feud. Palaeoclimatologist, a ten noncrucial a to, rauli, a sirky, coy, if, pour my xmas. Hew, wisher seventy. Conducts, ya note, algic. Iricism, mil, swob groundling, koruny, hi lode, overwoman, shrive. Educate am fractocumulus, they tempt. Us goloe, offic, wammus, luminescing. Wow, relighted. Veracious glacon, seed, dram bat oral sgabellos noviceship, age neo cant bethorn, cirri nondepressed laserdisks, mom owl, fall. Multicordate, is, splint chremzel a he, kodak, acre, yokel, pope kong. A mojarra, savant, dredges, squattest ye. Plonked algologist, sip citrin. us gimp, woke, congressing.";
@@ -322,7 +322,15 @@ const OVERLAY_PRESETS = [
     }
 ];
 
-export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({ fonts, isCompareMode = false, customLabels, onUpdateGlyph, selectedChar, onCharSelect, lastEditedMethod }) => {
+export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({ 
+  fonts, 
+  isCompareMode = false, 
+  customLabels, 
+  onUpdateGlyph, 
+  selectedChar = 'H', 
+  onCharSelect = () => {}, 
+  lastEditedMethod = MethodType.TRACY 
+}) => {
   const { isDark } = useTheme();
 
   // Ensure we have at least one font loaded to display analysis
@@ -390,7 +398,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({ fonts, isCompare
   React.useEffect(() => {
     localStorage.setItem('saame_view_mode', viewMode);
   }, [viewMode]);
-  const [selectedDiagramMethod, setSelectedDiagramMethod] = useState<MethodType>(lastEditedMethod);
+  const [selectedDiagramMethod, setSelectedDiagramMethod] = useState<MethodType>(lastEditedMethod || MethodType.TRACY);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isReportExportModalOpen, setIsReportExportModalOpen] = useState(false);
   const [reportFileName, setReportFileName] = useState("");

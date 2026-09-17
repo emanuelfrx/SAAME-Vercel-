@@ -869,26 +869,26 @@ export const calculateHarmonicSpacing = (font: OpenTypeFont, char: string, side:
     const baseCounter = context.baseInternalCounter;
 
     // Smoother mass multiplier curve.
-    let massMultiplier = 0.30; 
+    let massMultiplier = 0.35; // Slightly increased base for regular
     if (context.k_massa <= 0.20) {
-        massMultiplier = 0.40; // Light
+        massMultiplier = 0.45; // Increased for Light
     } else if (context.k_massa <= 0.60) {
-        // Linear interpolation from 0.40 to 0.20
-        massMultiplier = 0.40 - ((context.k_massa - 0.20) / 0.40) * (0.40 - 0.20);
+        // Linear interpolation from 0.45 to 0.25
+        massMultiplier = 0.45 - ((context.k_massa - 0.20) / 0.40) * (0.45 - 0.25);
     } else {
-        // Heavy/Black
-        massMultiplier = Math.max(0.08, 0.20 - ((context.k_massa - 0.60) / 0.30) * (0.20 - 0.08));
+        // Heavy/Black - Keep it tight but slightly more than before to prevent collisions
+        massMultiplier = Math.max(0.12, 0.25 - ((context.k_massa - 0.60) / 0.30) * (0.25 - 0.12));
     }
 
     if (context.styleCategory === 'SCRIPT') {
         if (side === 'rsb') {
             return 0; // connecting scripts generally have 0 rsb
         }
-        massMultiplier *= 0.6; // much tighter LSB for scripts
+        massMultiplier *= 0.55; // even tighter LSB for scripts as requested
     }
 
     if (context.styleCategory === 'DISPLAY') {
-        massMultiplier *= 0.8; // display fonts are typically spaced tighter
+        massMultiplier *= 0.75; // slightly tighter for display
     }
 
     let widthModifier = 1.0;
@@ -909,12 +909,12 @@ export const calculateHarmonicSpacing = (font: OpenTypeFont, char: string, side:
     let respiroBase = baseCounter * massMultiplier * widthModifier;
     
     if (context.isSerif) {
-        respiroBase *= 0.85; // Serifs fill up sidebearing space physically, needing visually tighter spacing
+        respiroBase *= 0.88; // Slightly more space for serifs than before (was 0.85)
         if (context.k_massa >= 0.50) {
-            respiroBase *= 1.15; // But bold serifs need extra room so serifs don't crash
+            respiroBase *= 1.12; 
         }
         if (context.isItalic) {
-            respiroBase *= 1.10; // Italic serifs also need a bit more breathing room
+            respiroBase *= 1.10; 
         }
     }
 
@@ -922,35 +922,33 @@ export const calculateHarmonicSpacing = (font: OpenTypeFont, char: string, side:
     const rounds = ['O', 'o', 'Q', 'C', 'G', 'e', 'c', '0', 'a'];
     const diagonals = ['A', 'V', 'W', 'v', 'w', 'y', 'Y'];
     const semiRounds = ['D', 'B', 'P', 'R', 'p', 'b', 'q', 'd'];
-    const nArch = ['n', 'm', 'h']; // rsb is smaller
+    const nArch = ['n', 'm', 'h']; 
 
     let targetSB = respiroBase;
 
     // Symmetrical modifications based on character shape
     if (rounds.includes(char)) {
-        targetSB = respiroBase * 0.80; 
+        targetSB = respiroBase * 0.82; // Slightly increased
     } else if (diagonals.includes(char)) {
-        targetSB = respiroBase * 0.25; // Diagonals require much tighter spacing due to large negative space
+        targetSB = respiroBase * 0.30; // Increased from 0.25 to prevent sticking in bold
     } else if (semiRounds.includes(char)) {
         if (char === 'd' || char === 'q') {
-            // Left is round, Right is straight
-            if (side === 'lsb') targetSB = respiroBase * 0.80;
+            if (side === 'lsb') targetSB = respiroBase * 0.82;
             if (side === 'rsb') targetSB = respiroBase;
-            if (side === 'both') targetSB = respiroBase * 0.90;
+            if (side === 'both') targetSB = respiroBase * 0.91;
         } else {
-            // Left is straight, Right is round
             if (side === 'lsb') targetSB = respiroBase;
-            if (side === 'rsb') targetSB = respiroBase * 0.80;
-            if (side === 'both') targetSB = respiroBase * 0.90;
+            if (side === 'rsb') targetSB = respiroBase * 0.82;
+            if (side === 'both') targetSB = respiroBase * 0.91;
         }
     } else if (nArch.includes(char) && side === 'rsb') {
-        targetSB = respiroBase * 0.90; // Arch exits need slightly less space
+        targetSB = respiroBase * 0.92; 
     } else if (char === 'u' && side === 'lsb') {
-        targetSB = respiroBase * 0.90; 
+        targetSB = respiroBase * 0.92; 
     }
 
     if (context.isItalic) {
-        targetSB *= 0.95; 
+        targetSB *= 0.97; // Slightly more room for italics
     }
 
     if (context.styleCategory === 'OUTLINE') {
@@ -960,14 +958,14 @@ export const calculateHarmonicSpacing = (font: OpenTypeFont, char: string, side:
     let minSafeSB = 0;
     
     if (context.styleCategory !== 'SCRIPT') {
-        // Global minimum for non-script fonts to prevent touching
-        minSafeSB = context.upm * 0.015;
+        // Increased global minimum to prevent letters sticking as requested
+        minSafeSB = context.upm * 0.022; // ~22 units for 1000upm
     }
 
     if (context.k_massa >= 0.60 && !diagonals.includes(char)) {
-        minSafeSB = Math.max(minSafeSB, context.upm * 0.02); 
+        minSafeSB = Math.max(minSafeSB, context.upm * 0.028); // ~28 units for Bold
     } else if (diagonals.includes(char)) {
-        minSafeSB = -context.upm * 0.03; // allow slight negative for diagonals to tuck in
+        minSafeSB = -context.upm * 0.02; // reduced negative allowance
     }
     
     return Math.max(minSafeSB, Math.round(targetSB));
