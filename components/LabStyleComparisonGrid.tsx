@@ -27,7 +27,7 @@ export const LabStyleComparisonGrid: React.FC<LabStyleComparisonGridProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-[#0d1117] border dark:border-gray-800 border-gray-200 rounded-lg overflow-hidden shadow-2xl">
+    <div className="flex-1 flex flex-col min-h-[650px] w-full bg-white dark:bg-zinc-950 border dark:border-zinc-800 border-zinc-200 rounded-xl shadow-2xl">
         <AnalysisCanvas 
             fonts={fontsMap} 
             isCompareMode={true} 

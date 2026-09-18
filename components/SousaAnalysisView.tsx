@@ -26,11 +26,11 @@ const DEFAULT_GROUPS = {
 
 const getColorForType = (type: 'S'|'A'|'R'|'V') => {
     switch(type) {
-        case 'S': return 'text-blue-600 dark:text-blue-400';
-        case 'A': return 'text-green-600 dark:text-green-400';
-        case 'R': return 'text-red-600 dark:text-red-400';
-        case 'V': return 'dark:text-gray-400 text-gray-700';
-        default: return 'dark:text-gray-500 text-gray-500';
+        case 'S': return 'text-zinc-900 dark:text-zinc-100';
+        case 'A': return 'text-zinc-800 dark:text-zinc-200';
+        case 'R': return 'text-zinc-700 dark:text-zinc-300';
+        case 'V': return 'dark:text-zinc-400 text-zinc-600';
+        default: return 'dark:text-zinc-500 text-zinc-500';
     }
 };
 
@@ -72,7 +72,7 @@ export const SousaAnalysisView: React.FC<SousaAnalysisViewProps> = ({ font, cate
                         <div 
                             key={char} 
                             onClick={() => onGlyphClick?.(char, lsb, rsb)}
-                            className="dark:bg-gray-800/50 bg-gray-200/50 rounded h-16 p-1 flex items-center border border-cyan-500/20 dark:hover:bg-gray-800 hover:bg-gray-200 transition-colors cursor-pointer"
+                            className="dark:bg-zinc-800/50 bg-zinc-200/50 rounded h-16 p-1 flex items-center border dark:border-zinc-700/60 border-zinc-300 dark:hover:bg-zinc-800 hover:bg-zinc-200 transition-colors cursor-pointer"
                         >
                             <div className="min-w-[30px] flex-1 flex flex-col items-center justify-center h-full border-r dark:border-gray-700/30 border-gray-300/30">
                                 <span className="mb-0.5 opacity-30 dark:text-gray-400 text-gray-600 text-[11px] leading-none">L</span>
@@ -104,18 +104,18 @@ export const SousaAnalysisView: React.FC<SousaAnalysisViewProps> = ({ font, cate
 
   return (
     <div className="mb-8">
-        <h4 className="text-base font-bold uppercase mb-6 tracking-wider flex items-center gap-2 text-cyan-600 dark:text-cyan-400">
-             <div className="w-2 h-2 rounded-full bg-cyan-500"></div>
+        <h4 className="text-base font-bold uppercase mb-6 tracking-wider flex items-center gap-2 dark:text-white text-zinc-900">
+             <div className="w-2 h-2 rounded-full dark:bg-white bg-zinc-900"></div>
              Método Sousa — Análise de {category === 'Uppercase' ? 'Maiúsculas' : 'Minúsculas'}
         </h4>
 
         {/* Legend */}
         {!searchQuery && (
-            <div className="flex flex-wrap gap-4 mb-6 text-sm dark:bg-gray-900/50 bg-gray-100/50 p-3 rounded border dark:border-gray-700 border-gray-300 items-center justify-between lg:justify-start lg:gap-8">
-                <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded bg-blue-400"></div> Haste / Reta</span>
-                {category === 'Lowercase' && <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded bg-green-400"></div> Arco</span>}
-                <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded bg-red-400"></div> Circular</span>
-                <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded bg-gray-400"></div> Visual</span>
+            <div className="flex flex-wrap gap-4 mb-6 text-sm dark:bg-zinc-900/60 bg-zinc-100/80 p-3 rounded-xl border dark:border-zinc-800 border-zinc-300 items-center justify-between lg:justify-start lg:gap-8">
+                <span className="flex items-center gap-1.5 font-medium dark:text-zinc-300 text-zinc-700"><div className="w-2 h-2 rounded dark:bg-white bg-zinc-900"></div> Haste / Reta</span>
+                {category === 'Lowercase' && <span className="flex items-center gap-1.5 font-medium dark:text-zinc-300 text-zinc-700"><div className="w-2 h-2 rounded dark:bg-zinc-300 bg-zinc-600"></div> Arco</span>}
+                <span className="flex items-center gap-1.5 font-medium dark:text-zinc-300 text-zinc-700"><div className="w-2 h-2 rounded dark:bg-zinc-500 bg-zinc-400"></div> Circular</span>
+                <span className="flex items-center gap-1.5 font-medium dark:text-zinc-300 text-zinc-700"><div className="w-2 h-2 rounded dark:bg-zinc-700 bg-zinc-300"></div> Visual</span>
             </div>
         )}
         

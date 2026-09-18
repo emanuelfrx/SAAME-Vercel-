@@ -174,29 +174,29 @@ export const OriginalCustomTuner: React.FC<{
     };
 
     return (
-        <div className="dark:bg-slate-900/50 bg-slate-100/50 backdrop-blur rounded-[2rem] p-4 md:p-6 border dark:border-slate-800 border-slate-200 shadow-2xl relative w-full h-full overflow-y-auto overflow-x-hidden custom-scrollbar">
+        <div className="dark:bg-zinc-900/50 bg-zinc-100/50 backdrop-blur rounded-[2rem] p-4 md:p-6 border dark:border-zinc-800 border-zinc-200 shadow-sm relative w-full h-full overflow-y-auto overflow-x-hidden custom-scrollbar">
             
             {/* OVERLAY MODAL FOR INDIVIDUAL ADJUSTMENT */}
             {editingChar && (
-                <div className="absolute inset-0 z-50 dark:bg-slate-50 border dark:border-slate-800 bg-slate-50 border-slate-200 flex flex-col p-4 md:p-6 rounded-2xl overflow-y-auto custom-scrollbar shadow-2xl overflow-x-hidden" style={{backgroundColor: 'rgb(241 245 249)'}}>
-                    <div className="absolute inset-0 bg-slate-100 dark:bg-slate-950 -z-10" />
+                <div className="absolute inset-0 z-50 dark:bg-zinc-950 bg-zinc-50 border dark:border-zinc-800 border-zinc-200 flex flex-col p-4 md:p-6 rounded-2xl overflow-y-auto custom-scrollbar shadow-xl overflow-x-hidden">
+                    <div className="absolute inset-0 bg-zinc-50 dark:bg-zinc-950 -z-10" />
                     
                     {/* Header Modal */}
                     <div className="flex justify-between items-start mb-4 shrink-0">
                         <div>
-                           <h2 className="text-2xl font-black dark:text-white text-slate-900 uppercase tracking-tighter">AJUSTE FINO DE GLIFO</h2>
-                           <div className="mt-1 flex items-center gap-2 flex-wrap text-sm dark:text-slate-500 text-slate-500 font-medium uppercase tracking-wider">
+                           <h2 className="text-2xl font-black dark:text-white text-zinc-950 uppercase tracking-tighter">AJUSTE FINO DE GLIFO</h2>
+                           <div className="mt-1 flex items-center gap-2 flex-wrap text-sm dark:text-zinc-400 text-zinc-600 font-medium uppercase tracking-wider">
                                 <span>GLIFO SELECIONADO:</span>
-                                <span className="font-mono bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded">{editingChar}</span>
+                                <span className="font-mono bg-zinc-200 dark:bg-zinc-800 px-2 py-0.5 rounded text-zinc-900 dark:text-zinc-100 font-bold">{editingChar}</span>
                                 <button
                                     onClick={() => handleCopyUnicode(editingChar)}
-                                    className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-250 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-305 text-slate-700 transition-all text-xs font-mono font-bold uppercase cursor-pointer shadow-sm hover:scale-105"
+                                    className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-200 text-zinc-800 transition-all text-xs font-mono font-bold uppercase cursor-pointer shadow-sm hover:scale-105"
                                     title="Copiar Unicode para o diagrama de espaçamento"
                                 >
                                     {copied ? (
                                         <>
-                                            <Check className="w-3 h-3 text-green-500" />
-                                            <span className="text-green-500">Copiado!</span>
+                                            <Check className="w-3 h-3 text-zinc-950 dark:text-white" />
+                                            <span className="text-zinc-950 dark:text-white">Copiado!</span>
                                         </>
                                     ) : (
                                         <>
@@ -208,14 +208,14 @@ export const OriginalCustomTuner: React.FC<{
                            </div>
                         </div>
                         <div className="flex items-center gap-2">
-                           <div className="hidden sm:flex items-center gap-2 bg-white dark:bg-slate-900 border dark:border-slate-800 border-slate-200 px-3 py-1.5 rounded-full shadow-sm">
-                               <span className="text-[11px] uppercase font-black dark:text-slate-500 text-slate-600">STATUS</span>
-                               <span className={`text-[11px] uppercase font-black px-2 py-0.5 rounded-md ${hasOverride ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' : 'bg-blue-500/20 text-blue-600 dark:text-blue-400'}`}>
+                           <div className="hidden sm:flex items-center gap-2 bg-white dark:bg-zinc-900 border dark:border-zinc-800 border-zinc-200 px-3 py-1.5 rounded-full shadow-sm">
+                               <span className="text-[11px] uppercase font-black dark:text-zinc-400 text-zinc-600">STATUS</span>
+                               <span className={`text-[11px] uppercase font-black px-2 py-0.5 rounded-md ${hasOverride ? 'bg-zinc-900 text-white dark:bg-white dark:text-black' : 'bg-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200'}`}>
                                    {hasOverride ? 'MODIFICADO' : 'INDIVIDUAL'}
                                </span>
                            </div>
-                           <button onClick={() => setEditingChar(null)} className="p-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-lg transition-all shadow-sm">
-                               <X className="w-4 h-4 dark:text-slate-400 text-slate-600" />
+                           <button onClick={() => setEditingChar(null)} className="p-2 bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 rounded-lg transition-all shadow-sm">
+                               <X className="w-4 h-4 dark:text-zinc-400 text-zinc-600" />
                            </button>
                         </div>
                     </div>
@@ -225,7 +225,7 @@ export const OriginalCustomTuner: React.FC<{
                         {/* Left Col: Preview + Sliders */}
                         <div className="flex flex-col gap-4 overflow-y-auto custom-scrollbar p-1">
                             {/* Live Preview editable */}
-                            <div className="bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 shadow-md shadow-slate-100/80 dark:shadow-[0_10px_30px_rgba(0,0,0,0.6)] rounded-2xl p-4 md:p-5 flex flex-col justify-center min-h-[110px] shrink-0 max-h-[300px] overflow-y-auto custom-scrollbar">
+                            <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-sm rounded-2xl p-4 md:p-5 flex flex-col justify-center min-h-[110px] shrink-0 max-h-[300px] overflow-y-auto custom-scrollbar">
                                 {isModalEditing ? (
                                     <div className="flex flex-col items-center justify-center w-full py-2" onClick={(e) => e.stopPropagation()}>
                                         <input 
@@ -239,14 +239,14 @@ export const OriginalCustomTuner: React.FC<{
                                             }}
                                             onBlur={() => setIsModalEditing(false)}
                                             autoFocus
-                                            className="text-center bg-transparent border-none outline-none font-mono text-base text-slate-800 dark:text-slate-200 border-b border-dashed border-pink-500/50 py-1 w-full max-w-xs focus:ring-0"
+                                            className="text-center bg-transparent border-none outline-none font-mono text-base text-zinc-900 dark:text-zinc-100 border-b border-dashed border-zinc-400 dark:border-zinc-600 py-1 w-full max-w-xs focus:ring-0"
                                             placeholder="Ex: nnXnn, ooXoo"
                                         />
-                                        <p className="text-[10px] text-pink-500 mt-2 font-mono uppercase tracking-widest font-black animate-pulse">Enter para salvar</p>
+                                        <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-2 font-mono uppercase tracking-widest font-black">Enter para salvar</p>
                                     </div>
                                 ) : (
                                     <div 
-                                        className="text-center py-2 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-900/30 rounded-xl relative group/preview min-h-[44px] flex flex-col justify-center items-center"
+                                        className="text-center py-2 cursor-pointer transition-all hover:bg-zinc-50 dark:hover:bg-zinc-900/50 rounded-xl relative group/preview min-h-[44px] flex flex-col justify-center items-center"
                                         onClick={() => setIsModalEditing(true)}
                                         title="Clique para editar sequência"
                                     >
@@ -255,7 +255,7 @@ export const OriginalCustomTuner: React.FC<{
                                                 const chars = word.split('');
                                                 return (
                                                     <div 
-                                                        key={wordIdx}
+                                                        key={wordIdx} 
                                                         className="text-3xl md:text-4xl tracking-normal text-center whitespace-nowrap overflow-x-auto custom-scrollbar w-full pb-2 mb-1" 
                                                         style={{ fontFamily: `'${font?.fullFontFamily || font?.metrics?.fontFamily}'` }}
                                                     >
@@ -283,7 +283,7 @@ export const OriginalCustomTuner: React.FC<{
                                                 );
                                             })}
                                         </div>
-                                        <div className="absolute top-1 right-1 opacity-0 group-hover/preview:opacity-100 transition-opacity bg-pink-500/10 text-pink-400 p-1 rounded">
+                                        <div className="absolute top-1 right-1 opacity-0 group-hover/preview:opacity-100 transition-opacity bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 p-1 rounded">
                                             <Edit2 className="w-3 h-3" />
                                         </div>
                                     </div>
@@ -291,14 +291,14 @@ export const OriginalCustomTuner: React.FC<{
                             </div>
 
                             {/* Import Controls */}
-                            <div className="dark:bg-slate-900/50 bg-slate-50 p-4 rounded-2xl border dark:border-slate-800 border-slate-200 shadow-inner">
-                                <label className="text-xs font-black dark:text-slate-400 text-slate-600 uppercase tracking-widest mb-3 block flex items-center gap-2">
+                            <div className="dark:bg-zinc-900/50 bg-zinc-100/60 p-4 rounded-2xl border dark:border-zinc-800 border-zinc-200 shadow-inner">
+                                <label className="text-xs font-black dark:text-zinc-400 text-zinc-600 uppercase tracking-widest mb-3 block flex items-center gap-2">
                                     <Download className="w-3.5 h-3.5" /> IMPORTAR DE:
                                 </label>
                                 <div className="grid grid-cols-3 gap-2">
                                     <button 
                                         onClick={() => importMetricsFrom(originalFont, 'Original')} 
-                                        className="text-[10px] sm:text-xs font-bold uppercase py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                                        className="text-[10px] sm:text-xs font-bold uppercase py-2 bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-colors shadow-sm"
                                         title="Manter / restaurar métricas originais para esta letra"
                                     >
                                         Original
@@ -306,7 +306,7 @@ export const OriginalCustomTuner: React.FC<{
                                     <button 
                                         onClick={() => importMetricsFrom(tracyFont, 'Tracy')}
                                         disabled={!tracyFont}
-                                        className="text-[10px] sm:text-xs font-bold uppercase py-2 bg-pink-500/10 text-pink-600 dark:text-pink-400 hover:bg-pink-500/20 disabled:opacity-50 disabled:cursor-not-allowed border border-pink-500/20 rounded-lg transition-colors shadow-sm"
+                                        className="text-[10px] sm:text-xs font-bold uppercase py-2 bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-300 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed border border-zinc-300 dark:border-zinc-700 rounded-lg transition-colors shadow-sm"
                                         title="Importar métricas geradas pelo método Tracy"
                                     >
                                         Tracy
@@ -314,7 +314,7 @@ export const OriginalCustomTuner: React.FC<{
                                     <button 
                                         onClick={() => importMetricsFrom(sousaFont, 'Sousa')}
                                         disabled={!sousaFont}
-                                        className="text-[10px] sm:text-xs font-bold uppercase py-2 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed border border-indigo-500/20 rounded-lg transition-colors shadow-sm"
+                                        className="text-[10px] sm:text-xs font-bold uppercase py-2 bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-300 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed border border-zinc-300 dark:border-zinc-700 rounded-lg transition-colors shadow-sm"
                                         title="Importar métricas ajustadas pelo método Sousa"
                                     >
                                         Sousa
@@ -323,43 +323,43 @@ export const OriginalCustomTuner: React.FC<{
                             </div>
 
                             {/* LSB Slider */}
-                            <div className="dark:bg-slate-900/50 bg-slate-50 p-4 rounded-2xl border dark:border-slate-800 border-slate-200 shadow-inner">
+                            <div className="dark:bg-zinc-900/50 bg-zinc-100/60 p-4 rounded-2xl border dark:border-zinc-800 border-zinc-200 shadow-inner">
                                  <div className="flex justify-between items-center mb-3">
-                                     <label className="text-sm font-black dark:text-slate-400 text-slate-600 uppercase tracking-widest">SIDE BEARING ESQUERDO</label>
+                                     <label className="text-sm font-black dark:text-zinc-300 text-zinc-700 uppercase tracking-widest">SIDE BEARING ESQUERDO</label>
                                      <input 
                                          type="number" 
                                          value={metrics.lsb} 
                                          onChange={(e) => handleMetricChange('lsb', parseInt(e.target.value) || 0)}
-                                         className="w-24 dark:bg-slate-900 bg-white border dark:border-slate-700 border-slate-300 rounded-lg px-2 py-1 h-10 text-right text-xl font-bold text-blue-500 shadow-sm focus:border-blue-500 outline-none focus:ring-1 focus:ring-blue-500"
+                                         className="w-24 dark:bg-zinc-900 bg-white border dark:border-zinc-700 border-zinc-300 rounded-lg px-2 py-1 h-10 text-right text-xl font-bold text-zinc-950 dark:text-white shadow-sm focus:border-black dark:focus:border-white outline-none focus:ring-1 focus:ring-black dark:focus:ring-white"
                                      />
                                  </div>
                                  <input 
                                      type="range" min="-500" max="1500" value={metrics.lsb}
                                      onChange={(e) => handleMetricChange('lsb', parseInt(e.target.value))}
-                                     className="w-full accent-blue-500 h-1.5 dark:bg-slate-700 bg-slate-200 rounded-lg appearance-none cursor-pointer outline-none"
+                                     className="w-full accent-black dark:accent-white h-1.5 dark:bg-zinc-800 bg-zinc-200 rounded-lg appearance-none cursor-pointer outline-none"
                                  />
                             </div>
 
                             {/* RSB Slider */}
-                            <div className="dark:bg-slate-900/50 bg-slate-50 p-4 rounded-2xl border dark:border-slate-800 border-slate-200 shadow-inner">
+                            <div className="dark:bg-zinc-900/50 bg-zinc-100/60 p-4 rounded-2xl border dark:border-zinc-800 border-zinc-200 shadow-inner">
                                  <div className="flex justify-between items-center mb-3">
-                                     <label className="text-sm font-black dark:text-slate-400 text-slate-600 uppercase tracking-widest">SIDE BEARING DIREITO</label>
+                                     <label className="text-sm font-black dark:text-zinc-300 text-zinc-700 uppercase tracking-widest">SIDE BEARING DIREITO</label>
                                      <input 
                                          type="number" 
                                          value={metrics.rsb} 
                                          onChange={(e) => handleMetricChange('rsb', parseInt(e.target.value) || 0)}
-                                         className="w-24 dark:bg-slate-900 bg-white border dark:border-slate-700 border-slate-300 rounded-lg px-2 py-1 h-10 text-right text-xl font-bold text-emerald-500 shadow-sm focus:border-emerald-500 outline-none focus:ring-1 focus:ring-emerald-500"
+                                         className="w-24 dark:bg-zinc-900 bg-white border dark:border-zinc-700 border-zinc-300 rounded-lg px-2 py-1 h-10 text-right text-xl font-bold text-zinc-950 dark:text-white shadow-sm focus:border-black dark:focus:border-white outline-none focus:ring-1 focus:ring-black dark:focus:ring-white"
                                      />
                                  </div>
                                  <input 
                                      type="range" min="-500" max="1500" value={metrics.rsb}
                                      onChange={(e) => handleMetricChange('rsb', parseInt(e.target.value))}
-                                     className="w-full accent-emerald-500 h-1.5 dark:bg-slate-700 bg-emerald-200 rounded-lg appearance-none cursor-pointer outline-none"
+                                     className="w-full accent-black dark:accent-white h-1.5 dark:bg-zinc-800 bg-zinc-200 rounded-lg appearance-none cursor-pointer outline-none"
                                  />
                             </div>
 
                             {hasOverride && (
-                                <button onClick={resetOverride} className="flex items-center justify-center gap-2 text-sm text-red-500 bg-red-500/10 hover:bg-red-500/20 rounded-xl dark:text-red-400 font-black uppercase tracking-widest py-3 transition-colors focus:outline-none border border-red-500/20">
+                                <button onClick={resetOverride} className="flex items-center justify-center gap-2 text-sm text-zinc-950 bg-zinc-200 hover:bg-zinc-300 rounded-xl dark:text-white dark:bg-zinc-800 dark:hover:bg-zinc-700 font-black uppercase tracking-widest py-3 transition-colors focus:outline-none border dark:border-zinc-700 border-zinc-300">
                                     <RotateCcw className="w-3.5 h-3.5" /> Restaurar Métricas
                                 </button>
                             )}
@@ -368,11 +368,11 @@ export const OriginalCustomTuner: React.FC<{
                         {/* Right Col: Visualizer */}
                         <div className="flex flex-col min-h-0">
                             <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-sm font-black dark:text-slate-400 text-slate-600 uppercase tracking-widest flex items-center gap-2">
+                                <h3 className="text-sm font-black dark:text-zinc-400 text-zinc-600 uppercase tracking-widest flex items-center gap-2">
                                     <Layers className="w-3.5 h-3.5" /> ANÁLISE GEOMÉTRICA
                                 </h3>
                                 <div className="flex items-center gap-2">
-                                    <label className="text-xs font-black uppercase tracking-widest dark:text-slate-400 text-slate-600 whitespace-nowrap">ALTERAR GLIFO:</label>
+                                    <label className="text-xs font-black uppercase tracking-widest dark:text-zinc-400 text-zinc-600 whitespace-nowrap">ALTERAR GLIFO:</label>
                                     <input 
                                         type="text"
                                         maxLength={1}
@@ -386,12 +386,12 @@ export const OriginalCustomTuner: React.FC<{
                                             }
                                         }}
                                         onFocus={(e) => e.target.select()}
-                                        className="bg-white dark:bg-slate-950 border-2 dark:border-blue-500/50 border-blue-400 rounded-lg px-2 py-1 text-center text-lg font-black dark:text-white text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none w-16 shadow-sm transition-all"
+                                        className="bg-white dark:bg-zinc-950 border-2 dark:border-zinc-700 border-zinc-400 rounded-lg px-2 py-1 text-center text-lg font-black dark:text-white text-zinc-900 focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white outline-none w-16 shadow-sm transition-all"
                                     />
                                 </div>
                             </div>
-                            <div className="flex-1 dark:bg-slate-900 bg-white rounded-3xl border dark:border-slate-800 border-slate-200 overflow-hidden min-h-[250px] shadow-sm flex flex-col p-4">
-                                <div className="flex-1 border dark:border-slate-800 border-slate-100 rounded-2xl overflow-hidden shadow-inner">
+                            <div className="flex-1 dark:bg-zinc-900 bg-white rounded-3xl border dark:border-zinc-800 border-zinc-200 overflow-hidden min-h-[250px] shadow-sm flex flex-col p-4">
+                                <div className="flex-1 border dark:border-zinc-800 border-zinc-100 rounded-2xl overflow-hidden shadow-inner">
                                     <GlyphVisualizer 
                                         char={editingChar} 
                                         font={font} 
@@ -408,31 +408,31 @@ export const OriginalCustomTuner: React.FC<{
 
             {/* MAIN VIEW - Identical to OriginalTuner */}
             <div className={`flex flex-col h-full ${editingChar ? 'hidden' : ''}`}>
-                <div className="flex items-center justify-between mb-4 pb-4 border-b dark:border-slate-800 border-slate-200 shrink-0">
+                <div className="flex items-center justify-between mb-4 pb-4 border-b dark:border-zinc-800 border-zinc-200 shrink-0">
                     <div className="flex items-center gap-4">
-                        <div className="w-8 h-8 rounded-lg bg-slate-500/20 border border-slate-500/30 flex items-center justify-center relative">
-                            <Eye className="w-4 h-4 dark:text-slate-400 text-slate-600" />
-                            <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-yellow-500 rounded-full border-2 dark:border-slate-900 border-slate-100" />
+                        <div className="w-8 h-8 rounded-lg bg-zinc-200 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 flex items-center justify-center relative">
+                            <Eye className="w-4 h-4 dark:text-zinc-300 text-zinc-700" />
+                            <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-zinc-950 dark:bg-white rounded-full border-2 dark:border-zinc-900 border-zinc-100" />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-black dark:text-white text-slate-900 tracking-tighter leading-none mb-0.5">
+                            <h2 className="text-2xl font-black dark:text-white text-zinc-950 tracking-tighter leading-none mb-0.5">
                                 AJUSTE MANUAL
                             </h2>
-                            <p className="text-xs dark:text-slate-400 text-slate-600 uppercase font-black tracking-widest pb-[1px]">Visualização e Edição de Métricas</p>
+                            <p className="text-xs dark:text-zinc-400 text-zinc-600 uppercase font-black tracking-widest pb-[1px]">Visualização e Edição de Métricas</p>
                         </div>
                     </div>
                 </div>
 
-                <div className="mb-4 p-4 rounded-xl dark:bg-slate-950/50 bg-slate-50/50 border dark:border-slate-800 border-slate-200 text-sm dark:text-slate-400 text-slate-600 shrink-0">
+                <div className="mb-4 p-4 rounded-xl dark:bg-zinc-900/50 bg-zinc-100/60 border dark:border-zinc-800 border-zinc-200 text-sm dark:text-zinc-400 text-zinc-600 shrink-0">
                     <p><strong>Ajuste Manual:</strong> Selecione um glifo na grade abaixo para realizar ajustes precisos em seus Side Bearings (LSB/RSB).</p>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0">
                     {/* Visualizer Area */}
-                    <div className="dark:bg-slate-950/50 bg-slate-50/50 p-4 rounded-2xl border dark:border-slate-800 border-slate-200 shadow-inner flex flex-col pt-4">
-                        <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-3 dark:bg-slate-900 bg-slate-100/50 rounded-xl border dark:border-slate-800 border-slate-200">
+                    <div className="dark:bg-zinc-900/40 bg-zinc-100/60 p-4 rounded-2xl border dark:border-zinc-800 border-zinc-200 shadow-inner flex flex-col pt-4">
+                        <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-3 dark:bg-zinc-900 bg-white rounded-xl border dark:border-zinc-800 border-zinc-200">
                             <div className="flex items-center gap-4">
-                                <label className="text-xs font-black uppercase tracking-widest dark:text-slate-400 text-slate-600 whitespace-nowrap">SELECIONAR GLIFO:</label>
+                                <label className="text-xs font-black uppercase tracking-widest dark:text-zinc-400 text-zinc-600 whitespace-nowrap">SELECIONAR GLIFO:</label>
                                 <input 
                                     type="text"
                                     maxLength={1}
@@ -445,23 +445,23 @@ export const OriginalCustomTuner: React.FC<{
                                         }
                                     }}
                                     onFocus={(e) => e.target.select()}
-                                    className="bg-white dark:bg-slate-950 border dark:border-slate-700 border-slate-300 rounded px-3 py-1.5 text-center text-base font-bold dark:text-white text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none w-16"
+                                    className="bg-white dark:bg-zinc-950 border dark:border-zinc-700 border-zinc-300 rounded px-3 py-1.5 text-center text-base font-bold dark:text-white text-zinc-900 focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white outline-none w-16"
                                     placeholder="Ex: H"
                                 />
                             </div>
                             <button
                                 onClick={() => handleCopyUnicode(selectedChar)}
-                                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold uppercase transition-all bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 text-slate-800 hover:scale-105 shadow-sm cursor-pointer"
+                                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold uppercase transition-all bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-200 text-zinc-800 hover:scale-105 shadow-sm cursor-pointer"
                                 title="Clique para copiar o Unicode deste glifo"
                             >
                                 {copied ? (
                                     <>
-                                        <Check className="w-3.5 h-3.5 text-green-500" />
-                                        <span className="text-green-500 font-bold">Copiado!</span>
+                                        <Check className="w-3.5 h-3.5 text-zinc-950 dark:text-white" />
+                                        <span className="text-zinc-950 dark:text-white font-bold">Copiado!</span>
                                     </>
                                 ) : (
                                     <>
-                                        <Copy className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                                        <Copy className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
                                         <span>
                                             U+{selectedChar.codePointAt(0)?.toString(16).toUpperCase().padStart(4, '0')}
                                         </span>
@@ -469,7 +469,7 @@ export const OriginalCustomTuner: React.FC<{
                                 )}
                             </button>
                         </div>
-                        <div className="flex-1 min-h-[200px] bg-white dark:bg-slate-900 rounded-2xl border dark:border-slate-800 border-slate-200 shadow-sm overflow-hidden mb-4">
+                        <div className="flex-1 min-h-[200px] bg-white dark:bg-zinc-900 rounded-2xl border dark:border-zinc-800 border-zinc-200 shadow-sm overflow-hidden mb-4">
                             <GlyphVisualizer 
                                 char={selectedChar} 
                                 font={font} 
@@ -478,22 +478,22 @@ export const OriginalCustomTuner: React.FC<{
                             />
                         </div>
                         <div className="grid grid-cols-2 gap-4 mt-auto">
-                            <div className="text-center p-3 rounded-xl dark:bg-slate-900 bg-white border dark:border-slate-800 border-slate-200 shadow-sm relative overflow-hidden">
-                                <div className="absolute top-0 left-0 right-0 h-1 bg-blue-500/20" />
-                                <div className="text-sm uppercase tracking-widest dark:text-slate-500 text-slate-500 font-black mb-1">LSB</div>
-                                <div className="text-2xl font-mono font-bold text-blue-500">{metrics.lsb}</div>
+                            <div className="text-center p-3 rounded-xl dark:bg-zinc-900 bg-white border dark:border-zinc-800 border-zinc-200 shadow-sm relative overflow-hidden">
+                                <div className="absolute top-0 left-0 right-0 h-1 bg-zinc-400 dark:bg-zinc-600" />
+                                <div className="text-sm uppercase tracking-widest dark:text-zinc-400 text-zinc-500 font-black mb-1">LSB</div>
+                                <div className="text-2xl font-mono font-bold text-zinc-950 dark:text-white">{metrics.lsb}</div>
                             </div>
-                            <div className="text-center p-3 rounded-xl dark:bg-slate-900 bg-white border dark:border-slate-800 border-slate-200 shadow-sm relative overflow-hidden">
-                                <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500/20" />
-                                <div className="text-sm uppercase tracking-widest dark:text-slate-500 text-slate-500 font-black mb-1">RSB</div>
-                                <div className="text-2xl font-mono font-bold text-emerald-500">{metrics.rsb}</div>
+                            <div className="text-center p-3 rounded-xl dark:bg-zinc-900 bg-white border dark:border-zinc-800 border-zinc-200 shadow-sm relative overflow-hidden">
+                                <div className="absolute top-0 left-0 right-0 h-1 bg-zinc-400 dark:bg-zinc-600" />
+                                <div className="text-sm uppercase tracking-widest dark:text-zinc-400 text-zinc-500 font-black mb-1">RSB</div>
+                                <div className="text-2xl font-mono font-bold text-zinc-950 dark:text-white">{metrics.rsb}</div>
                             </div>
                         </div>
                     </div>
 
                     {/* Character Grid Selector */}
-                    <div className="dark:bg-slate-950/50 bg-slate-50/50 p-4 lg:p-6 rounded-2xl border dark:border-slate-800 border-slate-200 shadow-inner flex flex-col min-h-0">
-                        <label className="text-xs dark:text-slate-500 text-slate-600 font-black uppercase tracking-widest mb-4 block">Seletor de Glifos</label>
+                    <div className="dark:bg-zinc-900/40 bg-zinc-100/60 p-4 lg:p-6 rounded-2xl border dark:border-zinc-800 border-zinc-200 shadow-inner flex flex-col min-h-0">
+                        <label className="text-xs dark:text-zinc-400 text-zinc-600 font-black uppercase tracking-widest mb-4 block">Seletor de Glifos</label>
                         <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-8 lg:grid-cols-6 xl:grid-cols-8 gap-2 h-full overflow-y-auto custom-scrollbar p-1">
                             {availableChars.map(c => {
                                 const isModified = !!localSettings.overrides[c];
@@ -505,13 +505,13 @@ export const OriginalCustomTuner: React.FC<{
                                         }} 
                                         className={`w-full aspect-square flex items-center justify-center rounded-lg text-lg font-bold transition-all relative ${
                                             selectedChar === c && !editingChar
-                                            ? 'bg-slate-600 dark:bg-slate-500 text-white shadow-lg transform scale-105 z-10' 
-                                            : 'dark:bg-slate-800 bg-slate-200 dark:text-slate-400 text-slate-700 dark:hover:bg-slate-700 hover:bg-slate-300'
+                                            ? 'bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 shadow-md transform scale-105 z-10' 
+                                            : 'dark:bg-zinc-800 bg-zinc-200 dark:text-zinc-300 text-zinc-800 dark:hover:bg-zinc-700 hover:bg-zinc-300'
                                         }`}
                                     >
                                         {c}
                                         {isModified && (
-                                            <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-yellow-500 shadow-sm" />
+                                            <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-zinc-950 dark:bg-white shadow-sm ring-1 ring-white dark:ring-black" />
                                         )}
                                     </button>
                                 );

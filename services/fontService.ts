@@ -64,7 +64,7 @@ const DIACRITICS_MAP: Record<string, string[]> = {
 
 /**
  * CACHE SYSTEM FOR HEAVY METRIC CALCULATIONS
- * Persists results of counterform analysis to avoid re-calculating identical paths.
+ * Persists results of counterform analysis, SB measurements, and glyph path conversions.
  */
 export class MetricsCache {
     private static cache: Map<string, any> = new Map();
@@ -74,8 +74,15 @@ export class MetricsCache {
     }
 
     static set(fontFamily: string, char: string, type: string, value: any) {
-        // Limit cache size to prevent memory leaks
-        if (this.cache.size > 2000) this.cache.clear();
+        // High capacity LRU-like pruning (prevent total wipeouts that cause freeze spikes)
+        if (this.cache.size > 10000) {
+            const keys = this.cache.keys();
+            for (let i = 0; i < 2000; i++) {
+                const next = keys.next();
+                if (next.done) break;
+                this.cache.delete(next.value);
+            }
+        }
         this.cache.set(`${fontFamily}_${char}_${type}`, value);
     }
     
@@ -83,6 +90,15 @@ export class MetricsCache {
         this.cache.clear();
     }
 }
+
+export const getFontCacheKey = (font: any): string => {
+    if (!font) return 'null';
+    if (!font.__fontId) {
+        font.__fontId = font.names?.fontFamily?.en || font.names?.unicode?.fontFamily?.en || `font_${Math.random().toString(36).slice(2, 9)}`;
+        font.__fontVersion = 0;
+    }
+    return `${font.__fontId}_v${font.__fontVersion || 0}`;
+};
 
 
 // Helper to manipulate font binary to avoid opentype.js parsing errors with complex tables
@@ -465,63 +481,84 @@ export const downloadFont = (font: OpenTypeFont, type: MethodType, customFileNam
 };
 
 export const calculateAverageSB = (font: OpenTypeFont): number => {
+    if (!font) return 0;
+    const key = getFontCacheKey(font);
+    const cached = MetricsCache.get(key, '__all__', 'avg_sb');
+    if (cached !== undefined) return cached;
+
     let total = 0;
     let count = 0;
-    const numGlyphs = font.glyphs.length;
+    const numGlyphs = font.glyphs ? font.glyphs.length : 0;
     
-    // Sample up to 1000 glyphs, focusing on basic Latin
+    // Sample up to 300 glyphs, focusing on basic Latin
     for (let i = 0; i < numGlyphs; i++) {
         const glyph = font.glyphs.get(i);
         // Only process glyphs with unicode in basic/extended Latin range
         if (glyph.unicode && glyph.unicode < 0x0500 && glyph.name !== 'space') {
-            // Use pre-calculated metrics if possible, otherwise fall back to bounding box ONLY if necessary
-            // In most opentype.js versions, leftSideBearing is pre-populated
             const lsb = glyph.leftSideBearing !== undefined ? glyph.leftSideBearing : (glyph.xMin || 0);
-            const rsb = glyph.advanceWidth - (glyph.xMax || 0);
+            const rsb = (glyph.advanceWidth || 0) - (glyph.xMax || 0);
             
             total += (lsb + rsb);
             count++;
             
-            // Limit search for performance on massive fonts
-            if (count > 500) break;
+            // Limit search for fast and responsive calculation
+            if (count > 250) break;
         }
     }
-    return count > 0 ? Math.round(total / (count * 2)) : 0;
-}
+    const result = count > 0 ? Math.round(total / (count * 2)) : 0;
+    MetricsCache.set(key, '__all__', 'avg_sb', result);
+    return result;
+};
 
 export const getCharMetrics = (font: OpenTypeFont, char: string): { lsb: number, rsb: number } => {
+    if (!font) return { lsb: 0, rsb: 0 };
+    const key = getFontCacheKey(font);
+    const cached = MetricsCache.get(key, char, 'sb');
+    if (cached) return cached;
+
     const glyph = font.charToGlyph(char);
     if (!glyph) return { lsb: 0, rsb: 0 };
     
     // Check if the glyph HAS a path to determine if it's empty
-    if (glyph.path.commands.length === 0) {
-        return { lsb: 0, rsb: glyph.advanceWidth };
+    if (!glyph.path || glyph.path.commands.length === 0) {
+        const res = { lsb: 0, rsb: glyph.advanceWidth || 0 };
+        MetricsCache.set(key, char, 'sb', res);
+        return res;
     }
 
     const box = glyph.getBoundingBox();
 
     const lsb = box.x1;
-    const rsb = glyph.advanceWidth - box.x2;
-    return { lsb: Math.round(lsb), rsb: Math.round(rsb) };
+    const rsb = (glyph.advanceWidth || 0) - box.x2;
+    const res = { lsb: Math.round(lsb), rsb: Math.round(rsb) };
+    MetricsCache.set(key, char, 'sb', res);
+    return res;
 };
 
 // Helper to get glyph data for Visualization
 export const getGlyphData = (font: OpenTypeFont, char: string) => {
+    if (!font) return null;
+    const key = getFontCacheKey(font);
+    const cached = MetricsCache.get(key, char, 'glyph_data');
+    if (cached) return cached;
+
     const glyph = font.charToGlyph(char);
     if (!glyph) return null;
     
     const box = glyph.getBoundingBox();
     
     // Handle empty glyphs
-    if ((box.x1 === 0 && box.x2 === 0 && box.y1 === 0 && box.y2 === 0) || glyph.path.commands.length === 0) {
-         return {
+    if ((box.x1 === 0 && box.x2 === 0 && box.y1 === 0 && box.y2 === 0) || !glyph.path || glyph.path.commands.length === 0) {
+        const res = {
             xMin: 0,
             xMax: 0,
-            yMin: font.descender,
-            yMax: font.ascender,
-            advanceWidth: glyph.advanceWidth,
+            yMin: font.descender || -200,
+            yMax: font.ascender || 800,
+            advanceWidth: glyph.advanceWidth || 0,
             pathData: ''
         };
+        MetricsCache.set(key, char, 'glyph_data', res);
+        return res;
     }
 
     // Get path exactly as it exists in the font's coordinate system
@@ -529,16 +566,18 @@ export const getGlyphData = (font: OpenTypeFont, char: string) => {
     const path = glyph.getPath(0, 0, units); 
     const pathData = path.toPathData(2);
 
-    return {
+    const res = {
         xMin: box.x1,
         xMax: box.x2,
-        yMin: font.descender,
-        yMax: font.ascender, // Use font metrics for vertical consistency
+        yMin: font.descender || -200,
+        yMax: font.ascender || 800, // Use font metrics for vertical consistency
         glyphYMin: box.y1,
         glyphYMax: box.y2,
-        advanceWidth: glyph.advanceWidth,
+        advanceWidth: glyph.advanceWidth || 0,
         pathData
     };
+    MetricsCache.set(key, char, 'glyph_data', res);
+    return res;
 };
 
 // --- NEW: Counter-form Analysis for Visualization ---
@@ -1098,6 +1137,9 @@ const isSpace =
     if (rsb !== null && !isNaN(bounds.x2)) {
         glyph.advanceWidth = bounds.x2 + rsb;
     }
+    
+    // Invalidate font version in cache
+    (font as any).__fontVersion = ((font as any).__fontVersion || 0) + 1;
 };
 
 export const applyTracyMethod = (font: OpenTypeFont, settings: TracySettings): void => {

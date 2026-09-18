@@ -100,10 +100,10 @@ export const SpacingDiagram: React.FC<SpacingDiagramProps> = ({ font, method, ca
   
   const getMethodStyles = () => {
     switch(method) {
-        case MethodType.TRACY: return { color: 'text-pink-400', border: 'border-pink-500/30', bg: 'bg-pink-500' };
-        case MethodType.SOUSA: return { color: 'text-cyan-400', border: 'border-cyan-500/30', bg: 'bg-cyan-500' };
-        case MethodType.ORIGINAL_CUSTOM: return { color: 'text-blue-400', border: 'border-blue-500/30', bg: 'bg-blue-500' };
-        default: return { color: 'dark:text-slate-400 text-slate-600', border: 'border-slate-500/30', bg: 'bg-slate-500' };
+        case MethodType.TRACY: return { color: 'dark:text-zinc-100 text-zinc-900', border: 'dark:border-zinc-700/60 border-zinc-300', bg: 'dark:bg-white bg-zinc-900' };
+        case MethodType.SOUSA: return { color: 'dark:text-zinc-100 text-zinc-900', border: 'dark:border-zinc-700/60 border-zinc-300', bg: 'dark:bg-white bg-zinc-900' };
+        case MethodType.ORIGINAL_CUSTOM: return { color: 'dark:text-zinc-100 text-zinc-900', border: 'dark:border-zinc-700/60 border-zinc-300', bg: 'dark:bg-white bg-zinc-900' };
+        default: return { color: 'dark:text-slate-400 text-slate-600', border: 'dark:border-zinc-800 border-zinc-200', bg: 'bg-zinc-500' };
     }
   };
 
@@ -144,19 +144,19 @@ export const SpacingDiagram: React.FC<SpacingDiagramProps> = ({ font, method, ca
           const { h, o } = masters;
           
           if (type === 'S') {
-              if (Math.abs(val - h) <= tol) return { label: 'H', color: 'text-blue-400' };
-              if (val > h) return { label: '>H', color: 'text-blue-300' };
-              if (val < h) return { label: '<H', color: 'text-blue-300' };
+              if (Math.abs(val - h) <= tol) return { label: 'H', color: 'dark:text-white text-zinc-900 font-bold' };
+              if (val > h) return { label: '>H', color: 'dark:text-zinc-300 text-zinc-700' };
+              if (val < h) return { label: '<H', color: 'dark:text-zinc-300 text-zinc-700' };
           }
           if (type === 'R') {
-              if (Math.abs(val - o) <= tol) return { label: 'O', color: 'text-red-400' };
+              if (Math.abs(val - o) <= tol) return { label: 'O', color: 'dark:text-zinc-400 text-zinc-600' };
           }
-          if (type === 'V') return { label: '*', color: 'text-yellow-400' };
+          if (type === 'V') return { label: '*', color: 'dark:text-zinc-400 text-zinc-500 font-bold' };
           
           // Fallbacks for non-strict matches
-          if (Math.abs(val - h) <= tol) return { label: 'H', color: 'text-blue-400' };
-          if (Math.abs(val - o) <= tol) return { label: 'O', color: 'text-red-400' };
-          if (val <= h * 0.4) return { label: '*', color: 'text-yellow-400' };
+          if (Math.abs(val - h) <= tol) return { label: 'H', color: 'dark:text-white text-zinc-900 font-bold' };
+          if (Math.abs(val - o) <= tol) return { label: 'O', color: 'dark:text-zinc-400 text-zinc-600' };
+          if (val <= h * 0.4) return { label: '*', color: 'dark:text-zinc-400 text-zinc-500 font-bold' };
           
           return { label: '?', color: 'dark:text-gray-500 text-gray-500' };
       } else {
@@ -165,8 +165,8 @@ export const SpacingDiagram: React.FC<SpacingDiagramProps> = ({ font, method, ca
           
           if (type === 'S') {
                // Expect nStem
-               if (Math.abs(val - nLsb) <= tol) return { label: 'n', color: 'text-blue-400' };
-               if (val > nLsb) return { label: '>n', color: 'text-blue-300' };
+               if (Math.abs(val - nLsb) <= tol) return { label: 'n', color: 'dark:text-white text-zinc-900 font-bold' };
+               if (val > nLsb) return { label: '>n', color: 'dark:text-zinc-300 text-zinc-700' };
           }
           if (type === 'A') {
                // Expect nArch
@@ -174,17 +174,17 @@ export const SpacingDiagram: React.FC<SpacingDiagramProps> = ({ font, method, ca
           }
           if (type === 'R') {
                // Expect o
-               if (Math.abs(val - o) <= tol) return { label: 'o', color: 'text-red-400' };
-               if (val < o) return { label: '>o', color: 'text-red-300' };
+               if (Math.abs(val - o) <= tol) return { label: 'o', color: 'dark:text-zinc-400 text-zinc-600' };
+               if (val < o) return { label: '>o', color: 'dark:text-zinc-400 text-zinc-600' };
           }
           if (type === 'V') {
-              return { label: '*', color: 'text-yellow-400' };
+              return { label: '*', color: 'dark:text-zinc-400 text-zinc-500 font-bold' };
           }
 
           // Visual Fallbacks
-          if (Math.abs(val - nLsb) <= tol) return { label: 'n', color: 'text-blue-400' };
+          if (Math.abs(val - nLsb) <= tol) return { label: 'n', color: 'dark:text-white text-zinc-900 font-bold' };
           if (Math.abs(val - nRsb) <= tol) return { label: 'n', color: 'dark:text-gray-400 text-gray-600' };
-          if (Math.abs(val - o) <= tol) return { label: 'o', color: 'text-red-400' };
+          if (Math.abs(val - o) <= tol) return { label: 'o', color: 'dark:text-zinc-400 text-zinc-600' };
           
           return { label: '●', color: 'text-gray-600 dark:text-gray-500' }; 
       }
@@ -205,22 +205,22 @@ export const SpacingDiagram: React.FC<SpacingDiagramProps> = ({ font, method, ca
         
         {/* Comparison Legend */}
         {category === 'Uppercase' && method === MethodType.TRACY && (
-             <div className="flex flex-wrap gap-4 mb-4 text-xs uppercase font-bold tracking-wider dark:bg-gray-900/50 bg-gray-100/50 p-2 rounded border dark:border-gray-700 border-gray-300 items-center justify-between lg:justify-start lg:gap-8">
-                 <span className="flex items-center gap-1.5"><span className="text-blue-400 font-mono">H</span> = Reta</span>
-                 <span className="flex items-center gap-1.5"><span className="text-red-400 font-mono">O</span> = Circular</span>
-                 <span className="flex items-center gap-1.5"><span className="text-blue-300 font-mono">&gt;H</span> / <span className="text-blue-300 font-mono">&lt;H</span> = Reta Ajustada</span>
-                 <span className="flex items-center gap-1.5"><span className="text-yellow-400 font-mono">*</span> = Mínimo/Visual</span>
+             <div className="flex flex-wrap gap-4 mb-4 text-xs uppercase font-bold tracking-wider dark:bg-zinc-900/60 bg-zinc-100/80 p-2.5 rounded-xl border dark:border-zinc-800 border-zinc-300 items-center justify-between lg:justify-start lg:gap-8">
+                 <span className="flex items-center gap-1.5"><span className="dark:text-white text-zinc-900 font-mono font-bold">H</span> = Reta</span>
+                 <span className="flex items-center gap-1.5"><span className="dark:text-zinc-400 text-zinc-600 font-mono font-bold">O</span> = Circular</span>
+                 <span className="flex items-center gap-1.5"><span className="dark:text-zinc-300 text-zinc-700 font-mono">&gt;H</span> / <span className="dark:text-zinc-300 text-zinc-700 font-mono">&lt;H</span> = Reta Ajustada</span>
+                 <span className="flex items-center gap-1.5"><span className="dark:text-zinc-400 text-zinc-500 font-mono font-bold">*</span> = Mínimo/Visual</span>
              </div>
         )}
         
         {category === 'Lowercase' && method === MethodType.TRACY && (
-             <div className="flex flex-wrap gap-4 mb-4 text-xs uppercase font-bold tracking-wider dark:bg-gray-900/50 bg-gray-100/50 p-2 rounded border dark:border-gray-700 border-gray-300 items-center justify-between lg:justify-start lg:gap-8">
-                 <span className="flex items-center gap-1.5"><span className="text-blue-400 font-mono">n</span>(AZUL) = Haste</span>
-                 <span className="flex items-center gap-1.5"><span className="dark:text-gray-400 text-gray-600 font-mono">n</span>(CINZA) = Arco</span>
-                 <span className="flex items-center gap-1.5"><span className="text-red-400 font-mono">o</span> = Circular</span>
-                 <span className="flex items-center gap-1.5"><span className="text-blue-300 font-mono">&gt;n</span> = &gt; Haste</span>
-                 <span className="flex items-center gap-1.5"><span className="text-red-300 font-mono">&lt;o</span> = &lt; Circular</span>
-                 <span className="flex items-center gap-1.5"><span className="text-yellow-400 font-mono">*</span> = Mínimo</span>
+             <div className="flex flex-wrap gap-4 mb-4 text-xs uppercase font-bold tracking-wider dark:bg-zinc-900/60 bg-zinc-100/80 p-2.5 rounded-xl border dark:border-zinc-800 border-zinc-300 items-center justify-between lg:justify-start lg:gap-8">
+                 <span className="flex items-center gap-1.5"><span className="dark:text-white text-zinc-900 font-mono font-bold">n</span> = Haste</span>
+                 <span className="flex items-center gap-1.5"><span className="dark:text-zinc-400 text-zinc-600 font-mono font-bold">n</span> = Arco</span>
+                 <span className="flex items-center gap-1.5"><span className="dark:text-zinc-400 text-zinc-600 font-mono font-bold">o</span> = Circular</span>
+                 <span className="flex items-center gap-1.5"><span className="dark:text-zinc-300 text-zinc-700 font-mono">&gt;n</span> = &gt; Haste</span>
+                 <span className="flex items-center gap-1.5"><span className="dark:text-zinc-300 text-zinc-700 font-mono">&lt;o</span> = &lt; Circular</span>
+                 <span className="flex items-center gap-1.5"><span className="dark:text-zinc-400 text-zinc-500 font-mono font-bold">*</span> = Mínimo</span>
                  <span className="flex items-center gap-1.5"><span className="text-gray-600 dark:text-gray-500 font-mono">●</span> = Visual</span>
              </div>
         )}

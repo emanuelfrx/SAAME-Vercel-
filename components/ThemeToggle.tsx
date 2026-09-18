@@ -22,14 +22,14 @@ export const ThemeToggle: React.FC = () => {
     return (
         <button 
             onClick={toggleTheme}
-            className="fixed bottom-6 right-6 z-[9999] p-3 rounded-full dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-300 shadow-xl hover:scale-110 transition-transform focus:outline-none"
+            className="fixed bottom-6 right-6 z-[9999] p-3 rounded-full dark:bg-zinc-900 bg-white border dark:border-zinc-750 border-zinc-300 shadow-xl hover:scale-105 active:scale-95 transition-all text-zinc-900 dark:text-zinc-100 dark:hover:border-zinc-600 hover:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-400"
             title={isDark ? "Mudar para Modo Claro" : "Mudar para Modo Escuro"}
             aria-label={isDark ? "Mudar para Modo Claro" : "Mudar para Modo Escuro"}
         >
             {isDark ? (
-                <Sun className="w-5 h-5 text-yellow-500" />
+                <Sun className="w-5 h-5 text-white" />
             ) : (
-                <Moon className="w-5 h-5 text-indigo-500" />
+                <Moon className="w-5 h-5 text-black" />
             )}
         </button>
     );

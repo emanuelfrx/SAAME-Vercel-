@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useTheme } from './useTheme';
 import { TracySettings, FontState, MethodType } from '../types';
-import { Layers, Type, AlignJustify, AlignLeft, AlignCenter, AlignRight, Download, BarChart2, Columns, ArrowUpDown, FileText, Loader2, Search, X, Edit2 } from 'lucide-react';
+import { Layers, Type, AlignJustify, AlignLeft, AlignCenter, AlignRight, Download, BarChart2, Columns, ArrowUpDown, FileText, Loader2, Search, X, Edit2, Sparkles, CheckCircle2, Printer, Check } from 'lucide-react';
 import { calculateAverageSB, downloadFont, getCharMetrics, generateFontFaceCSS } from '../services/fontService';
 import { motion, AnimatePresence } from 'motion/react';
 import { SpacingDiagram } from './SpacingDiagram';
@@ -161,10 +161,10 @@ const RemainingGlyphsView = React.memo(({ font, method, searchQuery = '', onGlyp
 
     const getStyles = () => {
         switch(method) {
-            case MethodType.TRACY: return { color: 'text-pink-400', border: 'border-pink-500/20' };
-            case MethodType.SOUSA: return { color: 'text-cyan-400', border: 'border-cyan-500/20' };
-            case MethodType.ORIGINAL_CUSTOM: return { color: 'text-blue-400', border: 'border-blue-500/20' };
-            default: return { color: 'dark:text-slate-400 text-slate-600', border: 'border-slate-500/20' };
+            case MethodType.TRACY: return { color: 'dark:text-white text-zinc-900', border: 'border-zinc-400 dark:border-zinc-600' };
+            case MethodType.SOUSA: return { color: 'dark:text-zinc-300 text-zinc-700', border: 'border-zinc-300 dark:border-zinc-700' };
+            case MethodType.ORIGINAL_CUSTOM: return { color: 'dark:text-zinc-200 text-zinc-800', border: 'border-zinc-300 dark:border-zinc-700' };
+            default: return { color: 'dark:text-slate-400 text-slate-600', border: 'border-slate-300 dark:border-slate-700' };
         }
     };
 
@@ -231,14 +231,14 @@ const RenderedText = ({ text, baseChar, isOutline, outlineColor }: RenderedTextP
                 const isDerived = allDerivatives.includes(char);
                 
                 if (isBase || isDerived) {
-                    const colorClass = isBase ? 'text-pink-500 font-bold underline decoration-pink-500/30' : 'text-blue-500 font-bold underline decoration-blue-500/30';
+                    const colorClass = isBase ? 'dark:text-white text-zinc-900 font-bold underline decoration-zinc-500/40' : 'dark:text-zinc-300 text-zinc-700 font-bold underline decoration-zinc-400/40';
                     
                     if (isOutline) {
                         return (
                             <span 
                                 key={i} 
                                 style={{ 
-                                    WebkitTextStroke: `1.2px ${isBase ? '#EC4899' : '#3B82F6'}`,
+                                    WebkitTextStroke: `1.2px ${isBase ? '#18181b' : '#71717a'}`,
                                     color: 'transparent'
                                 }}
                             >
@@ -400,6 +400,29 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
   }, [viewMode]);
   const [selectedDiagramMethod, setSelectedDiagramMethod] = useState<MethodType>(lastEditedMethod || MethodType.TRACY);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [exportElapsedMs, setExportElapsedMs] = useState(0);
+
+  useEffect(() => {
+    if (!isExportingPdf) {
+      setExportElapsedMs(0);
+      return;
+    }
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      setExportElapsedMs(Date.now() - startTime);
+    }, 100);
+    return () => clearInterval(interval);
+  }, [isExportingPdf]);
+
+  const [pdfExportStatus, setPdfExportStatus] = useState<{
+    stage: string;
+    progress: number;
+    detail: string;
+  }>({
+    stage: 'Inicializando',
+    progress: 0,
+    detail: 'Preparando motor de renderização...'
+  });
   const [isReportExportModalOpen, setIsReportExportModalOpen] = useState(false);
   const [reportFileName, setReportFileName] = useState("");
   const [hasVisitedOverlay, setHasVisitedOverlay] = useState(false);
@@ -712,299 +735,509 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
       return;
     }
 
-    setIsExportingPdf(true);
     setIsReportExportModalOpen(false);
+    setIsExportingPdf(true);
+    setPdfExportStatus({
+      stage: 'Sincronização de Fontes',
+      progress: 6,
+      detail: 'Carregando fontes web e sincronizando contornos vetoriais...'
+    });
+
+    // Yield control briefly so React renders the loading screen immediately
+    await new Promise(resolve => setTimeout(resolve, 80));
 
     try {
-        // 1. Calculate dynamic scale to prevent "Invalid canvas data" (too big canvas)
-        const elementArea = exportRef.current.scrollWidth * exportRef.current.scrollHeight;
-        let exportScale = 2.0; // Balanced default quality
-        
-        // Optimize for stability on large layouts (staying within browser canvas limits)
-        if (elementArea > 8000000) exportScale = 1.5;
-        if (elementArea > 20000000) exportScale = 1.0;
-        if (elementArea > 40000000) exportScale = 0.8;
-        if (elementArea > 100000000) exportScale = 0.5;
+      // Ensure all custom fonts and webfonts are fully rasterized & ready in browser memory
+      if (document.fonts && document.fonts.ready) {
+        setPdfExportStatus({
+          stage: 'Sincronização de Glifos',
+          progress: 12,
+          detail: 'Validando métricas e curvas de Bézier dos glifos...'
+        });
+        await document.fonts.ready;
+      }
 
-        const canvas = await html2canvas(exportRef.current, {
-            scale: exportScale, 
-            useCORS: true,
-            backgroundColor: '#ffffff', // FORCE WHITE BACKGROUND
-            logging: false,
-            // Ensure we capture everything with generous buffers
-            windowWidth: exportRef.current.scrollWidth + 300,
-            height: null, 
-            onclone: (clonedDoc) => {
-                const element = clonedDoc.querySelector('[data-export-target="true"]') as HTMLElement;
-                if (element) {
-                    // Force the width to ensure text doesn't wrap differently in the clone
-                    element.style.width = `${exportRef.current.scrollWidth}px`;
-                    
-                    // --- FORCE LIGHT MODE STYLES FOR EXPORT ---
-                    element.style.backgroundColor = '#ffffff';
-                    element.style.color = '#000000';
-                    element.style.height = 'auto'; // FORCE FULL HEIGHT
-                    element.style.overflow = 'visible'; // SHOW ALL TEXT
-                    element.style.maxHeight = 'none';
+      setPdfExportStatus({
+        stage: 'Análise de Geometria HD',
+        progress: 22,
+        detail: fontSize <= 20 
+          ? 'Ativando matriz Ultra-HD (600 DPI) para máxima nitidez em corpos de texto pequenos...' 
+          : 'Calculando proporções de mancha gráfica para matriz HD editorial...'
+      });
+      await new Promise(resolve => setTimeout(resolve, 60));
 
-                    // --- OVERLAY MODE SPECIFIC FIXES ---
-                    if (viewMode === 'overlay') {
-                        const overlayMaster = element.querySelector('.overlay-height-master') as HTMLElement;
-                        const masterP = overlayMaster?.querySelector('p');
-                        
-                        // Force parent to show relative positioning for height calculation
-                        element.style.position = 'relative';
-                        element.style.display = 'block';
+      const targetEl = exportRef.current;
+      const elWidth = Math.max(800, targetEl.scrollWidth || 1200);
+      const elHeight = Math.max(600, targetEl.scrollHeight || 1000);
 
-                        if (overlayMaster) {
-                           overlayMaster.style.opacity = '1';
-                           overlayMaster.style.visibility = 'visible';
-                           overlayMaster.style.position = 'relative';
-                           overlayMaster.style.display = 'block';
-                           overlayMaster.style.width = '100%';
-                        }
+      // Ultra-HD Quality calculation dynamically adapted to typographic body size:
+      // At small sizes (e.g. <= 16px), a fixed 300 DPI yield can produce only 20-30 raster pixels per em,
+      // which causes blurry serifs, muddy counters, and loss of edge contrast.
+      // By dynamically supersampling to 550–650 DPI (~6000-7200px canvas width) for small body sizes,
+      // small characters gain 70-85+ physical raster pixels, rendering razor-sharp contours, distinct sidebearings,
+      // and crystal-clear letterforms even under close inspection or zoom in the generated PDF.
+      let targetCanvasWidth = 3800; // standard display sizes (> 40px)
+      if (fontSize <= 14) {
+        targetCanvasWidth = 6800; // ~630 DPI ultra-HD specimen grade
+      } else if (fontSize <= 20) {
+        targetCanvasWidth = 6000; // ~560 DPI high-precision body grade
+      } else if (fontSize <= 28) {
+        targetCanvasWidth = 5200; // ~480 DPI
+      } else if (fontSize <= 40) {
+        targetCanvasWidth = 4400; // ~410 DPI
+      }
 
-                        // Calculate height based on the reference text content
-                        if (masterP) {
-                            // Ensure the master P is expanded properly
-                            masterP.style.height = 'auto';
-                            masterP.style.overflow = 'visible';
-                            masterP.style.whiteSpace = 'pre-wrap';
-                            masterP.style.wordBreak = 'break-word';
-                            const calcHeight = masterP.getBoundingClientRect().height || masterP.offsetHeight;
-                            element.style.minHeight = `${calcHeight + 400}px`; // Generous bottom padding
-                            element.style.height = 'auto';
-                        }
-                    }
+      let exportScale = Number((targetCanvasWidth / elWidth).toFixed(2));
 
-                    // For both modes: Expand inner containers
-                    const containers = element.querySelectorAll('div');
-                    containers.forEach(div => {
-                        if (div.classList.contains('overflow-auto') || div.classList.contains('overflow-y-auto')) {
-                            div.style.overflow = 'visible';
-                            div.style.height = 'auto';
-                            div.style.maxHeight = 'none';
-                        }
-                    });
+      // Guard within safe browser Canvas dimensional bounds (prevent exceeding memory limits)
+      const maxCanvasDim = 13500;
+      if (elHeight * exportScale > maxCanvasDim) {
+        exportScale = Number((maxCanvasDim / elHeight).toFixed(2));
+      }
+      if (elWidth * exportScale > maxCanvasDim) {
+        exportScale = Number((maxCanvasDim / elWidth).toFixed(2));
+      }
+      exportScale = Math.max(2.5, exportScale);
 
-                    // --- GENERAL STYLING FOR PDF (WHITE BG) ---
-                    // Specific Handling for Side-by-Side Text Colors
-                    const textElements = element.querySelectorAll('p, h4, span, div');
-                    textElements.forEach((el) => {
-                         const style = window.getComputedStyle(el);
-                         // If it's a grid overlay div (has background image), swap to Light Grid
-                         if ((el as HTMLElement).style.backgroundImage && (el as HTMLElement).style.backgroundImage.includes('data:image/svg')) {
-                             (el as HTMLElement).style.backgroundImage = gridLight;
-                             return;
-                         }
+      const achievedDpi = Math.round((elWidth * exportScale) / (273 / 25.4));
 
-                         // If text is white/gray (light), force it to black/dark gray
-                         const color = style.color;
-                         if (color.startsWith('rgb(2') || color === 'white' || color.includes('255, 255') || color.includes('209, 213')) {
-                             (el as HTMLElement).style.color = '#111827'; // gray-900
-                         }
-                    });
+      setPdfExportStatus({
+        stage: 'Rasterização de Ultra-Alta Resolução',
+        progress: 40,
+        detail: `Renderizando glifos em matriz ultra-HD (${achievedDpi} DPI, escala ${exportScale}x) com anti-aliasing de alta precisão...`
+      });
+      await new Promise(resolve => setTimeout(resolve, 80));
 
-                    // Remove borders or make them light gray
-                    const bordered = element.querySelectorAll('.border-gray-800, .border-gray-700, .bg-gray-900');
-                    bordered.forEach(el => {
-                        el.classList.remove('dark:bg-gray-900 bg-gray-100', 'dark:bg-gray-800 bg-gray-200', 'dark:bg-gray-950 bg-gray-50');
-                        el.classList.add('bg-white');
-                        (el as HTMLElement).style.borderColor = '#e5e7eb'; // gray-200
-                        (el as HTMLElement).style.backgroundColor = '#ffffff';
-                    });
-
-                    // --- FONT STAIN RENDERING ---
-                    if (viewMode === 'overlay') {
-                        const allPs = element.querySelectorAll('p');
-                        allPs.forEach(p => {
-                            // Check if this P is in a relative/absolute container that belongs to a method
-                            const parent = p.parentElement;
-                            const isReference = p.closest('.overlay-height-master') || (parent && parent.classList.contains('absolute') && !p.style.webkitTextStroke.includes('px'));
-                            
-                            if (isReference) {
-                                // REFERENCE FONT (The "Stain")
-                                // Matching lighter preview style (subtle but visible)
-                                p.style.color = 'rgba(0, 0, 0, 0.055)'; 
-                                p.style.webkitTextStroke = 'none';
-                                p.style.opacity = '1';
-                                p.style.visibility = 'visible';
-                            } else {
-                                // COMPARISON FONTS (Outlines)
-                                p.style.color = 'transparent';
-                                p.style.opacity = '1';
-
-                                // Ensure strokes are crisp and not excessively thick in the export
-                                if (p.style.webkitTextStroke && p.style.webkitTextStroke.includes('px')) {
-                                    const strokeParts = p.style.webkitTextStroke.split(' ');
-                                    const rawSize = parseFloat(strokeParts[0]);
-                                    if (!isNaN(rawSize)) {
-                                        // Compensate for PDF rendering bias towards thicker strokes
-                                        p.style.webkitTextStroke = `${Math.max(0.3, rawSize * 0.7)}px ${strokeParts.slice(1).join(' ')}`;
-                                    }
-                                }
-                            }
-                        });
-                    }
-                    
-                    // Re-position Legend for Print (Bottom of the content, not fixed to screen)
-                    const legend = element.querySelector('.overlay-legend') as HTMLElement;
-                    if (legend) {
-                        legend.style.position = 'absolute';
-                        legend.style.bottom = '10px';
-                        legend.style.right = '10px';
-                        legend.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
-                        legend.style.borderColor = '#e5e7eb';
-                        legend.style.color = '#000';
-                        legend.style.boxShadow = 'none';
-                        // Fix legend text colors
-                        legend.querySelectorAll('.text-gray-300').forEach(el => (el as HTMLElement).style.color = '#000');
-                        legend.querySelectorAll('.text-gray-400').forEach(el => (el as HTMLElement).style.color = '#4b5563');
-                    }
-                    
-                    // Hide export buttons in the clone
-                    const ignoreBtns = clonedDoc.querySelectorAll('button');
-                    ignoreBtns.forEach(btn => btn.style.display = 'none');
-                }
+      const canvas = await html2canvas(targetEl, {
+        scale: exportScale,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        windowWidth: elWidth + 300,
+        height: null,
+        imageTimeout: 25000,
+        onclone: async (clonedDoc) => {
+          // Sync loaded FontFaces into the cloned document's font registry
+          try {
+            if (document.fonts) {
+              document.fonts.forEach((fontFace) => {
+                try {
+                  (clonedDoc as any).fonts?.add(fontFace);
+                } catch (err) {}
+              });
             }
-        });
+          } catch (e) {}
 
-        // 2. Initialize PDF (Landscape A4)
-        const pdf = new jsPDF({
-            orientation: 'landscape',
-            unit: 'mm',
-            format: 'a4'
-        });
+          // Inject custom @font-face rules and enforce optimizeLegibility font rendering
+          const cloneStyle = clonedDoc.createElement('style');
+          cloneStyle.textContent = `
+            ${fontFacesCSS}
+            * {
+              -webkit-font-smoothing: antialiased !important;
+              -moz-osx-font-smoothing: grayscale !important;
+              text-rendering: optimizeLegibility !important;
+              font-feature-settings: "kern" 1, "liga" 1, "calt" 1 !important;
+              font-kerning: normal !important;
+              font-synthesis: none !important;
+            }
+            p, span, h4 {
+              text-rendering: optimizeLegibility !important;
+              letter-spacing: normal;
+            }
+          `;
+          clonedDoc.head.appendChild(cloneStyle);
 
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const margin = 10;
-        const headerHeight = 40;
+          // Await cloned document font readiness so html2canvas renders with the actual OpenType fonts
+          if ((clonedDoc as any).fonts && (clonedDoc as any).fonts.ready) {
+            try {
+              await (clonedDoc as any).fonts.ready;
+            } catch (err) {}
+          }
 
-        // 3. Detailed Header Info (White bg, Black text for PDF cleanliness)
-        pdf.setFillColor(255, 255, 255); 
-        pdf.rect(0, 0, pageWidth, headerHeight, 'F');
+          const element = clonedDoc.querySelector('[data-export-target="true"]') as HTMLElement;
+          if (element) {
+            element.style.width = `${targetEl.scrollWidth}px`;
+            element.style.backgroundColor = '#ffffff';
+            element.style.color = '#050811';
+            element.style.height = 'auto';
+            element.style.overflow = 'visible';
+            element.style.maxHeight = 'none';
 
-        pdf.setTextColor(0, 0, 0); // Black text
-        pdf.setFontSize(14);
-        pdf.setFont("helvetica", "bold");
-        pdf.text("Relatório SAAME Typography Lab", margin, 10);
-        
-        pdf.setFontSize(9);
-        pdf.setFont("helvetica", "normal");
-        pdf.setTextColor(60, 60, 60); 
-        const dateStr = new Date().toLocaleString();
-        
-        // Metadata Column 1
-        pdf.text(`Data: ${dateStr}`, margin, 16);
-        pdf.text(`Modo de Visualização: ${viewMode === 'side-by-side' ? 'Comparação Lado a Lado' : 'Sobreposição (Overlay)'}`, margin, 21);
-        
-        // Metadata Column 2 (Parameters)
-        const col2X = margin + 80;
-        pdf.text(`Tamanho da Fonte: ${fontSize}px`, col2X, 16);
-        pdf.text(`Entrelinha: ${lineHeight}em`, col2X, 21);
-        pdf.text(`Capitalização: ${textCase === 'uppercase' ? 'Caixa Alta' : textCase === 'lowercase' ? 'Caixa Baixa' : 'Normal'}`, col2X, 26);
-        pdf.text(`Alinhamento: ${textAlign === 'left' ? 'Esquerda' : textAlign === 'center' ? 'Centralizado' : textAlign === 'right' ? 'Direita' : 'Justificado'}`, col2X, 31);
-        
-        // Metadata Column 3 (Legend)
-        const col3X = margin + 140;
-        pdf.setFont("helvetica", "bold");
-        pdf.text("LEGENDA:", col3X, 16);
-        pdf.setFont("helvetica", "normal");
-        
-        let legendY = 21;
-        if (viewMode === 'overlay') {
-            activeMethods.forEach((method) => {
-                if (method === MethodType.ORIGINAL) {
-                    pdf.setFillColor(150, 150, 150);
-                    pdf.rect(col3X, legendY - 3, 3, 3, 'F');
-                    pdf.text(`Original: ${labelOriginal.substring(0, 20)}`, col3X + 5, legendY);
-                } else if (method === MethodType.ORIGINAL_CUSTOM) {
-                    pdf.setDrawColor(59, 130, 246);
-                    pdf.setLineWidth(0.5);
-                    pdf.rect(col3X, legendY - 3, 3, 3, 'S');
-                    pdf.text(`Ajuste Manual`, col3X + 5, legendY);
-                } else if (method === MethodType.TRACY) {
-                    pdf.setDrawColor(isCompareMode ? 6 : 236, isCompareMode ? 182 : 72, isCompareMode ? 212 : 153);
-                    pdf.setLineWidth(0.5);
-                    pdf.rect(col3X, legendY - 3, 3, 3, 'S');
-                    pdf.text(`${isCompareMode ? 'Experimental' : 'Tracy'}: ${labelTracy.substring(0, 20)}`, col3X + 5, legendY);
-                } else if (method === MethodType.SOUSA) {
-                    pdf.setDrawColor(6, 182, 212);
-                    pdf.setLineWidth(0.5);
-                    pdf.rect(col3X, legendY - 3, 3, 3, 'S');
-                    pdf.text(`Sousa`, col3X + 5, legendY);
-                }
-                legendY += 5;
+            // Stabilize side-by-side columns to ensure proportional distribution and avoid line overflow
+            if (viewMode === 'side-by-side') {
+              element.style.display = 'flex';
+              element.style.flexDirection = 'row';
+              element.style.width = '100%';
+              const cols = element.querySelectorAll(':scope > div');
+              const colCount = cols.length || 1;
+              cols.forEach((col) => {
+                const colEl = col as HTMLElement;
+                colEl.style.minWidth = '0';
+                colEl.style.maxWidth = 'none';
+                colEl.style.flex = `1 1 ${100 / colCount}%`;
+                colEl.style.width = `${100 / colCount}%`;
+                colEl.style.overflow = 'visible';
+              });
+            }
+
+            if (viewMode === 'overlay') {
+              const overlayMaster = element.querySelector('.overlay-height-master') as HTMLElement;
+              const masterP = overlayMaster?.querySelector('p');
+              element.style.position = 'relative';
+              element.style.display = 'block';
+
+              if (overlayMaster) {
+                overlayMaster.style.opacity = '1';
+                overlayMaster.style.visibility = 'visible';
+                overlayMaster.style.position = 'relative';
+                overlayMaster.style.display = 'block';
+                overlayMaster.style.width = '100%';
+              }
+
+              if (masterP) {
+                masterP.style.height = 'auto';
+                masterP.style.overflow = 'visible';
+                masterP.style.whiteSpace = 'pre-wrap';
+                masterP.style.wordBreak = 'break-word';
+                const calcHeight = masterP.getBoundingClientRect().height || masterP.offsetHeight;
+                element.style.minHeight = `${calcHeight + 350}px`;
+                element.style.height = 'auto';
+              }
+            }
+
+            // Expand scroll containers
+            const containers = element.querySelectorAll('div');
+            containers.forEach(div => {
+              if (div.classList.contains('overflow-auto') || div.classList.contains('overflow-y-auto')) {
+                div.style.overflow = 'visible';
+                div.style.height = 'auto';
+                div.style.maxHeight = 'none';
+              }
             });
+
+            // Adjust text elements for clean white background and deep typographic contrast
+            const textElements = element.querySelectorAll('p, h4, span, div');
+            textElements.forEach((el) => {
+              const hEl = el as HTMLElement;
+              if (hEl.style.backgroundImage && hEl.style.backgroundImage.includes('data:image/svg')) {
+                hEl.style.backgroundImage = gridLight;
+                return;
+              }
+              const style = window.getComputedStyle(hEl);
+              const color = style.color;
+              // Enforce high-density typographic black on light/grey text to maximize legibility and edge contrast
+              if (
+                color.startsWith('rgb(2') || 
+                color === 'white' || 
+                color.includes('255, 255') || 
+                color.includes('209, 213') ||
+                color.includes('156, 163, 175') ||
+                color.includes('107, 114, 128') ||
+                color.includes('75, 85, 99') ||
+                color.includes('55, 65, 81')
+              ) {
+                hEl.style.color = '#050811';
+              }
+            });
+
+            // Clean borders & backgrounds for paper print
+            const bordered = element.querySelectorAll('.border-gray-800, .border-gray-700, .border-slate-800, .border-slate-700, .bg-gray-900, .bg-slate-900');
+            bordered.forEach(el => {
+              (el as HTMLElement).style.borderColor = '#e2e8f0';
+              (el as HTMLElement).style.backgroundColor = '#ffffff';
+            });
+
+            if (viewMode === 'overlay') {
+              const allPs = element.querySelectorAll('p');
+              allPs.forEach(p => {
+                const parent = p.parentElement;
+                const isReference = p.closest('.overlay-height-master') || (parent && parent.classList.contains('absolute') && !p.style.webkitTextStroke.includes('px'));
+                
+                if (isReference) {
+                  p.style.color = 'rgba(15, 23, 42, 0.08)';
+                  p.style.webkitTextStroke = 'none';
+                  p.style.opacity = '1';
+                  p.style.visibility = 'visible';
+                } else {
+                  p.style.color = 'transparent';
+                  p.style.opacity = '1';
+                  if (p.style.webkitTextStroke && p.style.webkitTextStroke.includes('px')) {
+                    const strokeParts = p.style.webkitTextStroke.split(' ');
+                    const rawSize = parseFloat(strokeParts[0]);
+                    if (!isNaN(rawSize)) {
+                      p.style.webkitTextStroke = `${Math.max(0.7, rawSize * 0.95)}px ${strokeParts.slice(1).join(' ')}`;
+                    }
+                  }
+                }
+              });
+            }
+
+            const legend = element.querySelector('.overlay-legend') as HTMLElement;
+            if (legend) {
+              legend.style.position = 'absolute';
+              legend.style.bottom = '12px';
+              legend.style.right = '12px';
+              legend.style.backgroundColor = 'rgba(255, 255, 255, 0.97)';
+              legend.style.borderColor = '#cbd5e1';
+              legend.style.color = '#0f172a';
+              legend.style.boxShadow = '0 4px 12px rgba(0,0,0,0.06)';
+              legend.querySelectorAll('.text-gray-300, .text-slate-300').forEach(el => (el as HTMLElement).style.color = '#0f172a');
+              legend.querySelectorAll('.text-gray-400, .text-slate-400').forEach(el => (el as HTMLElement).style.color = '#475569');
+            }
+
+            const ignoreBtns = clonedDoc.querySelectorAll('button');
+            ignoreBtns.forEach(btn => btn.style.display = 'none');
+          }
+        }
+      });
+
+      setPdfExportStatus({
+        stage: 'Diagramação de Pranchas A4',
+        progress: 70,
+        detail: 'Calculando paginação e fatiamento sem perdas (lossless PNG)...'
+      });
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // 2. Initialize Landscape A4 PDF
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4',
+        compress: true
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth(); // 297mm
+      const pageHeight = pdf.internal.pageSize.getHeight(); // 210mm
+      const margin = 12; // mm
+      const availableWidth = pageWidth - (margin * 2); // 273mm
+      const headerHeightP1 = 37; // mm
+      const headerHeightSub = 14; // mm
+      const footerHeight = 10; // mm
+
+      // Pixels per mm in the rendered canvas
+      const pxPerMm = canvas.width / availableWidth;
+
+      // Available printable height per page
+      const printableHeightP1 = pageHeight - headerHeightP1 - footerHeight - margin;
+      const printableHeightSub = pageHeight - headerHeightSub - footerHeight - margin;
+
+      const sliceHeightPxP1 = Math.floor(printableHeightP1 * pxPerMm);
+      const sliceHeightPxSub = Math.floor(printableHeightSub * pxPerMm);
+
+      const totalPages = canvas.height <= sliceHeightPxP1 
+        ? 1 
+        : 1 + Math.ceil((canvas.height - sliceHeightPxP1) / sliceHeightPxSub);
+
+      const dateStr = new Date().toLocaleString('pt-BR');
+      const fontDisplayName = fonts[MethodType.ORIGINAL]?.fontObj?.names?.fontFamily?.en || labelOriginal || 'Fonte';
+      const viewModeLabel = viewMode === 'side-by-side' ? 'Comparação Lado a Lado' : 'Sobreposição Óptica (Overlay)';
+
+      // Helper function to draw Header
+      const drawHeader = (pageNum: number) => {
+        pdf.setFillColor(255, 255, 255);
+        if (pageNum === 1) {
+          pdf.rect(0, 0, pageWidth, headerHeightP1, 'F');
+          
+          // Top accent brand band (System Blue #2563eb and Indigo #4f46e5)
+          pdf.setFillColor(37, 99, 235);
+          pdf.rect(margin, 0, (pageWidth - (margin * 2)) * 0.65, 1.2, 'F');
+          pdf.setFillColor(79, 70, 229);
+          pdf.rect(margin + (pageWidth - (margin * 2)) * 0.65, 0, (pageWidth - (margin * 2)) * 0.35, 1.2, 'F');
+
+          // Hairline rule under header
+          pdf.setDrawColor(226, 232, 240); // slate-200
+          pdf.setLineWidth(0.35);
+          pdf.line(margin, headerHeightP1 - 2, pageWidth - margin, headerHeightP1 - 2);
+
+          // Brand Title
+          pdf.setTextColor(15, 23, 42); // slate-900
+          pdf.setFontSize(13);
+          pdf.setFont("helvetica", "bold");
+          pdf.text("SAAME TYPOGRAPHY LAB", margin, 9);
+
+          // Technical Badge pill on right side in system colors
+          pdf.setFillColor(239, 246, 255); // blue-50
+          pdf.setDrawColor(191, 219, 254); // blue-200
+          pdf.setLineWidth(0.2);
+          const badgeText = `PADRÃO EDITORIAL HD • ${achievedDpi} DPI • A4 PAISAGEM`;
+          const badgeWidth = (pdf.getStringUnitWidth(badgeText) * 6.5 / pdf.internal.scaleFactor) + 6;
+          const badgeX = pageWidth - margin - badgeWidth;
+          pdf.roundedRect(badgeX, 5, badgeWidth, 5.5, 1.2, 1.2, 'FD');
+          pdf.setTextColor(29, 78, 216); // blue-700
+          pdf.setFontSize(6.5);
+          pdf.setFont("helvetica", "bold");
+          pdf.text(badgeText, badgeX + 3, 8.8);
+
+          // Subtitle
+          pdf.setFontSize(7.5);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(100, 116, 139); // slate-500
+          pdf.text("SISTEMA DE ANÁLISE E APLICAÇÃO DE MÉTODOS DE ESPAÇAMENTO TIPOGRÁFICO", margin, 13.5);
+
+          // Metadata Grid: Column 1 (Font & View)
+          pdf.setFontSize(8);
+          pdf.setTextColor(30, 41, 59); // slate-800
+          pdf.setFont("helvetica", "bold");
+          pdf.text("FONTE / ESPÉCIME:", margin, 20);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(71, 85, 105);
+          pdf.text(`${fontDisplayName} (${viewModeLabel})`, margin, 24.5);
+          pdf.text(`Data da Emissão: ${dateStr}`, margin, 29);
+
+          // Metadata Grid: Column 2 (Parameters)
+          const col2X = margin + 85;
+          pdf.setFont("helvetica", "bold");
+          pdf.setTextColor(30, 41, 59);
+          pdf.text("PARÂMETROS TIPOGRÁFICOS:", col2X, 20);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(71, 85, 105);
+          pdf.text(`Corpo: ${fontSize}px  •  Entrelinha: ${lineHeight}em  •  Matriz: ${achievedDpi} DPI`, col2X, 24.5);
+          const casingText = textCase === 'uppercase' ? 'Caixa Alta (MAIÚSCULAS)' : textCase === 'lowercase' ? 'Caixa Baixa (minúsculas)' : 'Caixa Normal';
+          const alignText = textAlign === 'left' ? 'À Esquerda' : textAlign === 'center' ? 'Centralizado' : textAlign === 'right' ? 'À Direita' : 'Justificado';
+          pdf.text(`Caixa: ${casingText}  •  Alinhamento: ${alignText}`, col2X, 29);
+
+          // Metadata Grid: Column 3 (Legend)
+          const col3X = margin + 175;
+          pdf.setFont("helvetica", "bold");
+          pdf.setTextColor(30, 41, 59);
+          pdf.text("MÉTODOS ANALISADOS:", col3X, 20);
+          pdf.setFont("helvetica", "normal");
+
+          let legX = col3X;
+          let legY = 24.5;
+          activeMethods.forEach((method) => {
+            if (method === MethodType.ORIGINAL) {
+              pdf.setFillColor(148, 163, 184); // slate-400
+              pdf.rect(legX, legY - 2.5, 2.5, 2.5, 'F');
+              pdf.setTextColor(71, 85, 105);
+              pdf.text("Original", legX + 4, legY);
+            } else if (method === MethodType.ORIGINAL_CUSTOM) {
+              pdf.setFillColor(59, 130, 246); // blue-500
+              pdf.rect(legX, legY - 2.5, 2.5, 2.5, 'F');
+              pdf.setTextColor(71, 85, 105);
+              pdf.text("Manual", legX + 4, legY);
+            } else if (method === MethodType.TRACY) {
+              pdf.setFillColor(236, 72, 153); // pink-500
+              pdf.rect(legX, legY - 2.5, 2.5, 2.5, 'F');
+              pdf.setTextColor(71, 85, 105);
+              pdf.text(isCompareMode ? 'Experimental' : 'Tracy', legX + 4, legY);
+            } else if (method === MethodType.SOUSA) {
+              pdf.setFillColor(6, 182, 212); // cyan-500
+              pdf.rect(legX, legY - 2.5, 2.5, 2.5, 'F');
+              pdf.setTextColor(71, 85, 105);
+              pdf.text("Sousa", legX + 4, legY);
+            }
+            legX += 23;
+          });
         } else {
-             // Side-by-Side
-             activeMethods.forEach((method, idx) => {
-                 let label = "";
-                 if (method === MethodType.ORIGINAL) label = `Original (${labelOriginal.substring(0, 15)})`;
-                 else if (method === MethodType.ORIGINAL_CUSTOM) label = "Ajuste Manual";
-                 else if (method === MethodType.TRACY) label = isCompareMode ? labelTracy : "Método Walter Tracy";
-                 else if (method === MethodType.SOUSA) label = "Método Miguel Sousa";
-                 
-                 pdf.text(`Col ${idx + 1}: ${label}`, col3X, legendY);
-                 legendY += 5;
-             });
+          // Running header on page 2+
+          pdf.rect(0, 0, pageWidth, headerHeightSub, 'F');
+          
+          // Accent line in system blue
+          pdf.setFillColor(37, 99, 235);
+          pdf.rect(margin, 0, pageWidth - (margin * 2), 0.8, 'F');
+
+          pdf.setDrawColor(226, 232, 240);
+          pdf.setLineWidth(0.25);
+          pdf.line(margin, headerHeightSub - 2, pageWidth - margin, headerHeightSub - 2);
+
+          pdf.setTextColor(15, 23, 42);
+          pdf.setFontSize(8.5);
+          pdf.setFont("helvetica", "bold");
+          pdf.text("SAAME TYPOGRAPHY LAB", margin, 7.5);
+
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(100, 116, 139);
+          pdf.text(`•  ${fontDisplayName}  •  ${viewModeLabel}  (Continuação)`, margin + 45, 7.5);
+        }
+      };
+
+      // Helper function to draw Footer
+      const drawFooter = (pageNum: number) => {
+        const footerY = pageHeight - 6;
+        pdf.setDrawColor(226, 232, 240);
+        pdf.setLineWidth(0.25);
+        pdf.line(margin, footerY - 3, pageWidth - margin, footerY - 3);
+
+        pdf.setFontSize(7);
+        pdf.setFont("helvetica", "normal");
+        pdf.setTextColor(148, 163, 184); // slate-400
+        pdf.text(`SAAME Typography Lab • Sistema de Aplicação e Análise de Métodos de Espaçamento • Resolução HD (${achievedDpi} DPI)`, margin, footerY);
+
+        const pageStr = `Página ${pageNum} de ${totalPages}`;
+        const pageStrWidth = pdf.getStringUnitWidth(pageStr) * 7 / pdf.internal.scaleFactor;
+        pdf.text(pageStr, pageWidth - margin - pageStrWidth, footerY);
+      };
+
+      // Page Slicing Loop:
+      let currentSourceY = 0;
+      for (let p = 1; p <= totalPages; p++) {
+        if (p > 1) {
+          pdf.addPage();
         }
 
-        // 4. Add Image with Multi-Page Logic
-        const imgData = canvas.toDataURL('image/jpeg', 0.85);
-        if (!imgData || imgData === 'data:,') {
-            console.error("Failed to generate PDF: Invalid canvas data");
-            setIsExportingPdf(false);
-            return;
-        }
-        const imgProps = pdf.getImageProperties(imgData);
-        
-        const availableWidth = pageWidth - (margin * 2);
-        // Calculate the height the full image would take on the PDF
-        const fullImgHeightOnPdf = (imgProps.height * availableWidth) / imgProps.width;
-        
-        let heightLeft = fullImgHeightOnPdf;
-        let position = headerHeight; // Start after header
-        let pageImgY = 0; // Where in the source image we are slicing from (conceptually)
+        const startY = p === 1 ? headerHeightP1 : headerHeightSub;
+        const maxSlicePx = p === 1 ? sliceHeightPxP1 : sliceHeightPxSub;
+        const remainingPx = canvas.height - currentSourceY;
+        const currentSliceHeightPx = Math.min(maxSlicePx, remainingPx);
 
-        // First Page
-        // If image fits on one page (minus header and footer margin)
-        if (fullImgHeightOnPdf <= (pageHeight - headerHeight - margin)) {
-             pdf.addImage(imgData, 'JPEG', margin, position, availableWidth, fullImgHeightOnPdf);
-        } else {
-             // Multi-page loop
-             // We add the image, but shifted up for subsequent pages
-             // Note: jsPDF addImage supports simple placement. For splitting a long canvas cleanly across pages without slicing manually, 
-             // the standard trick is to add the same image with a negative Y offset on subsequent pages, masked by the page boundaries.
-             
-             let yOffset = headerHeight;
-             
-             while (heightLeft > 0) {
-                 pdf.addImage(imgData, 'JPEG', margin, yOffset, availableWidth, fullImgHeightOnPdf);
-                 
-                 heightLeft -= (pageHeight - (yOffset === headerHeight ? headerHeight : margin) - margin); // Subtract visible area
-                 yOffset -= (pageHeight - margin * 2); // Shift up for next page
-                 
-                 if (heightLeft > 0) {
-                     pdf.addPage();
-                     // No header on subsequent pages, just top margin
-                     yOffset = margin - (fullImgHeightOnPdf - heightLeft); 
-                     // Actually, a simpler approach for the offset in the loop:
-                     // Just use the standard negative offset technique.
-                 }
-             }
-        }
-        
-        // Save
-        const finalFileName = (typeof customName === 'string' && customName.length > 0) ? customName : `Relatorio_Analise_${Date.now()}`;
-        pdf.save(finalFileName.toLowerCase().endsWith('.pdf') ? finalFileName : `${finalFileName}.pdf`);
+        if (currentSliceHeightPx <= 0) break;
 
+        // Slice canvas via temporary offscreen canvas with bit-perfect 1:1 pixel transfer (no resampling blur)
+        const sliceCanvas = document.createElement('canvas');
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = currentSliceHeightPx;
+        const sCtx = sliceCanvas.getContext('2d', { alpha: false });
+        if (sCtx) {
+          sCtx.imageSmoothingEnabled = false; // 1:1 pixel copy without interpolation blur
+          sCtx.fillStyle = '#ffffff';
+          sCtx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+          sCtx.drawImage(
+            canvas,
+            0, currentSourceY, canvas.width, currentSliceHeightPx,
+            0, 0, canvas.width, currentSliceHeightPx
+          );
+        }
+
+        // Lossless PNG for razor-sharp HD letterforms
+        const sliceData = sliceCanvas.toDataURL('image/png');
+        const sliceHeightMm = currentSliceHeightPx / pxPerMm;
+
+        pdf.addImage(sliceData, 'PNG', margin, startY, availableWidth, sliceHeightMm, undefined, 'FAST');
+
+        drawHeader(p);
+        drawFooter(p);
+
+        currentSourceY += currentSliceHeightPx;
+
+        setPdfExportStatus({
+          stage: 'Compondo Pranchas',
+          progress: Math.min(94, Math.round(70 + (p / totalPages) * 22)),
+          detail: `Processando prancha ${p} de ${totalPages} em alta resolução...`
+        });
+      }
+
+      setPdfExportStatus({
+        stage: 'Finalizando Documento',
+        progress: 98,
+        detail: 'Gravando metadados e gerando download do arquivo PDF HD...'
+      });
+      await new Promise(resolve => setTimeout(resolve, 80));
+
+      const finalFileName = (typeof customName === 'string' && customName.length > 0) ? customName : `Relatorio_Analise_${Date.now()}`;
+      pdf.save(finalFileName.toLowerCase().endsWith('.pdf') ? finalFileName : `${finalFileName}.pdf`);
+
+      setPdfExportStatus({
+        stage: 'Concluído!',
+        progress: 100,
+        detail: 'Download do relatório em alta definição concluído com sucesso!'
+      });
+      await new Promise(resolve => setTimeout(resolve, 350));
     } catch (error) {
-        console.error("PDF Generation failed:", error);
-        alert("Failed to generate PDF. Check console for details.");
+      console.error("PDF Generation failed:", error);
+      alert("Falha ao gerar PDF de alta definição. Verifique o console para mais detalhes.");
     } finally {
-        setIsExportingPdf(false);
+      setIsExportingPdf(false);
     }
   };
 
@@ -1052,7 +1285,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                       const hasChange = diffL !== 0 || diffR !== 0;
 
                       return (
-                          <div key={char} className={`dark:bg-gray-800/40 bg-gray-200/40 rounded p-3 border ${hasChange ? 'border-cyan-500/30 bg-cyan-900/5' : 'dark:border-gray-700/50 border-gray-300/50'} flex flex-col gap-2 group dark:hover:bg-gray-800 hover:bg-gray-200 transition-colors`}>
+                          <div key={char} className={`dark:bg-zinc-800/40 bg-zinc-200/40 rounded p-3 border ${hasChange ? 'dark:border-zinc-600 border-zinc-400 dark:bg-zinc-800/80 bg-zinc-100' : 'dark:border-zinc-700/50 border-zinc-300/50'} flex flex-col gap-2 group dark:hover:bg-zinc-800 hover:bg-zinc-200 transition-colors`}>
                               {/* Header */}
                               <div className="flex justify-between items-end border-b dark:border-gray-700/50 border-gray-300/50 pb-2">
                                   <span className="text-4xl leading-none dark:text-white text-slate-900" style={{ fontFamily: tracyFont.fullFontFamily }}>{char}</span>
@@ -1065,7 +1298,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                                   <div className="flex-1 flex justify-between items-center">
                                       <span className="dark:text-gray-500 text-gray-500 text-xs">{m1.lsb}</span>
                                       <span className="text-gray-600 dark:text-gray-500 text-xs">→</span>
-                                      <span className={`font-mono font-medium ${diffL !== 0 ? 'text-cyan-400' : 'dark:text-gray-400 text-gray-600'}`}>
+                                      <span className={`font-mono font-medium ${diffL !== 0 ? 'dark:text-white text-zinc-900 font-bold' : 'dark:text-gray-400 text-gray-600'}`}>
                                           {m2.lsb}
                                       </span>
                                   </div>
@@ -1077,7 +1310,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                                   <div className="flex-1 flex justify-between items-center">
                                       <span className="dark:text-gray-500 text-gray-500 text-xs">{m1.rsb}</span>
                                       <span className="text-gray-600 dark:text-gray-500 text-xs">→</span>
-                                      <span className={`font-mono font-medium ${diffR !== 0 ? 'text-cyan-400' : 'dark:text-gray-400 text-gray-600'}`}>
+                                      <span className={`font-mono font-medium ${diffR !== 0 ? 'dark:text-white text-zinc-900 font-bold' : 'dark:text-gray-400 text-gray-600'}`}>
                                           {m2.rsb}
                                       </span>
                                   </div>
@@ -1167,7 +1400,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                         const hasChange = diffL !== 0 || diffR !== 0;
 
                         return (
-                            <div key={g.unicode} className={`dark:bg-gray-800/40 bg-gray-200/40 rounded p-3 border ${hasChange ? 'border-cyan-500/30 bg-cyan-900/5' : 'dark:border-gray-700/50 border-gray-300/50'} flex flex-col gap-2 group dark:hover:bg-gray-800 hover:bg-gray-200 transition-colors`}>
+                            <div key={g.unicode} className={`dark:bg-zinc-800/40 bg-zinc-200/40 rounded p-3 border ${hasChange ? 'dark:border-zinc-600 border-zinc-400 dark:bg-zinc-800/80 bg-zinc-100' : 'dark:border-zinc-700/50 border-zinc-300/50'} flex flex-col gap-2 group dark:hover:bg-zinc-800 hover:bg-zinc-200 transition-colors`}>
                                 {/* Header */}
                                 <div className="flex justify-between items-end border-b dark:border-gray-700/50 border-gray-300/50 pb-2">
                                     <span className="text-3xl leading-none dark:text-white text-slate-900 w-full text-center" style={{ fontFamily: tracyFont.fullFontFamily }}>
@@ -1183,7 +1416,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                                     <div className="flex-1 flex justify-between items-center pl-2">
                                         <span className="dark:text-gray-500 text-gray-500 text-xs">{m1.lsb}</span>
                                         <span className="text-gray-600 dark:text-gray-500 text-xs">→</span>
-                                        <span className={`font-mono font-medium ${diffL !== 0 ? 'text-cyan-400' : 'dark:text-gray-400 text-gray-600'}`}>
+                                        <span className={`font-mono font-medium ${diffL !== 0 ? 'dark:text-white text-zinc-900 font-bold' : 'dark:text-gray-400 text-gray-600'}`}>
                                             {m2.lsb}
                                         </span>
                                     </div>
@@ -1195,7 +1428,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                                     <div className="flex-1 flex justify-between items-center pl-2">
                                         <span className="dark:text-gray-500 text-gray-500 text-xs">{m1.rsb}</span>
                                         <span className="text-gray-600 dark:text-gray-500 text-xs">→</span>
-                                        <span className={`font-mono font-medium ${diffR !== 0 ? 'text-cyan-400' : 'dark:text-gray-400 text-gray-600'}`}>
+                                        <span className={`font-mono font-medium ${diffR !== 0 ? 'dark:text-white text-zinc-900 font-bold' : 'dark:text-gray-400 text-gray-600'}`}>
                                             {m2.rsb}
                                         </span>
                                     </div>
@@ -1219,7 +1452,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
   });
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 w-full dark:bg-gray-900 bg-gray-100 rounded-lg overflow-hidden border dark:border-gray-700 border-gray-300 shadow-xl">
+    <div className="flex flex-col flex-1 w-full min-h-[650px] dark:bg-gray-900 bg-gray-100 rounded-xl border dark:border-gray-700 border-gray-300 shadow-xl overflow-hidden touch-pan-y touch-pan-x">
        {/* Inject Local Styles to enforce precision within this canvas context */}
        <style>
             {fontFacesCSS}
@@ -1227,39 +1460,39 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
 
       {/* Toolbar */}
       <div className="dark:bg-gray-800 bg-gray-200 p-2 md:p-3 flex flex-col gap-2 md:gap-4 border-b dark:border-gray-700 border-gray-300">
-        <div className="flex items-end justify-between gap-4 flex-wrap w-full">
+        <div className="flex items-stretch sm:items-end justify-between gap-3 sm:gap-4 flex-wrap w-full">
             {/* Left Block: Navegação, Modos de Visualização, Comparação */}
-            <div className="flex items-end gap-6 flex-wrap">
+            <div className="flex items-stretch sm:items-end gap-3 sm:gap-6 flex-wrap w-full lg:w-auto">
                 {/* View Mode Navigator (Always Visible) */}
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1 w-full sm:w-auto">
                     <span className="flex items-center gap-1 text-[10px] uppercase font-bold text-gray-500 tracking-wider">
-                        <Columns className="w-3.5 h-3.5 text-indigo-500" />
+                        <Columns className="w-3.5 h-3.5 dark:text-white text-zinc-900" />
                         1. Navegação
                     </span>
-                    <div className="grid grid-cols-3 gap-1 dark:bg-gray-700/50 bg-gray-300/50 rounded-lg p-1 shadow-inner">
+                    <div className="grid grid-cols-3 gap-1 dark:bg-gray-700/50 bg-gray-300/50 rounded-lg p-1 shadow-inner w-full sm:w-auto">
                         <button 
                             onClick={() => setViewMode('side-by-side')}
-                            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'side-by-side' ? 'bg-indigo-600 text-white shadow-sm' : 'dark:text-gray-400 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'}`}
+                            className={`flex items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'side-by-side' ? 'dark:bg-white dark:text-black bg-zinc-900 text-white shadow-sm' : 'dark:text-gray-400 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'}`}
                             title="Análise Comparativa (Lado a Lado)"
                         >
                             <Columns className="w-3.5 h-3.5" />
-                            Comparativo
+                            <span className="truncate">Comparativo</span>
                         </button>
                         <button 
                             onClick={() => setViewMode('overlay')}
-                            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'overlay' ? 'bg-rose-600 text-white shadow-sm' : 'dark:text-gray-400 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'}`}
+                            className={`flex items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'overlay' ? 'dark:bg-white dark:text-black bg-zinc-900 text-white shadow-sm' : 'dark:text-gray-400 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'}`}
                             title="Visualização Overlay"
                         >
                             <Layers className="w-3.5 h-3.5" />
-                            Overlay
+                            <span className="truncate">Overlay</span>
                         </button>
                         <button 
                             onClick={() => setViewMode('metrics')}
-                            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'metrics' ? 'bg-indigo-600 text-white shadow-sm' : 'dark:text-gray-400 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'}`}
+                            className={`flex items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'metrics' ? 'dark:bg-white dark:text-black bg-zinc-900 text-white shadow-sm' : 'dark:text-gray-400 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'}`}
                             title="Dados de Métricas / Diagrama"
                         >
                             <BarChart2 className="w-3.5 h-3.5" />
-                            Diagrama
+                            <span className="truncate">Diagrama</span>
                         </button>
                     </div>
                 </div>
@@ -1269,9 +1502,9 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                   <>
                       {/* Comparação (Second Section) */}
                       {!isCompareMode && (
-                      <div className="flex flex-col gap-1">
+                      <div className="flex flex-col gap-1 w-full sm:w-auto">
                         <span className="flex items-center gap-1 text-[10px] uppercase font-bold text-gray-500 tracking-wider">
-                            <Edit2 className="w-3.5 h-3.5 text-indigo-500" />
+                            <Edit2 className="w-3.5 h-3.5 dark:text-white text-zinc-900" />
                             2. Comparar
                         </span>
                         <div className="flex overflow-x-auto gap-1 pb-1 custom-scrollbar whitespace-nowrap dark:bg-gray-700/30 bg-gray-300/30 rounded-lg p-1">
@@ -1284,7 +1517,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                                 <button 
                                     key={m.type}
                                     onClick={() => toggleMethod(m.type)}
-                                    className={`px-2.5 py-1 text-xs font-black rounded-md transition-all ${activeMethods.includes(m.type) ? 'bg-indigo-600 text-white shadow-sm opacity-100' : 'dark:bg-gray-800 bg-white dark:text-gray-400 text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 opacity-60 hover:opacity-100'}`}
+                                    className={`px-2.5 py-1 text-xs font-black rounded-md transition-all ${activeMethods.includes(m.type) ? 'dark:bg-white dark:text-black bg-zinc-900 text-white shadow-sm opacity-100' : 'dark:bg-gray-800 bg-white dark:text-gray-400 text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 opacity-60 hover:opacity-100'}`}
                                 >
                                     {m.label}
                                 </button>
@@ -1294,22 +1527,22 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                       )}
 
                       {/* Modos de Visualização (Third Section) */}
-                      <div className="flex flex-col gap-1">
+                      <div className="flex flex-col gap-1 w-full sm:w-auto">
                           <span className="flex items-center gap-1 text-[10px] uppercase font-bold text-gray-500 tracking-wider">
-                              <Type className="w-3.5 h-3.5 text-blue-500" />
+                              <Type className="w-3.5 h-3.5 dark:text-white text-zinc-900" />
                               3. Modos
                           </span>
-                          <div className="flex gap-1">
+                          <div className="flex overflow-x-auto gap-1 custom-scrollbar">
                               <button 
                                   onClick={() => setPreset(PARAGRAPH_TEXT, 30, 'paragraph')} 
-                                  className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs transition-all ${analysisPreset === 'paragraph' ? 'bg-blue-600 text-white' : 'dark:bg-gray-700 bg-gray-300 dark:text-gray-300 hover:bg-opacity-80'}`}
+                                  className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs transition-all whitespace-nowrap ${analysisPreset === 'paragraph' ? 'dark:bg-white dark:text-black bg-zinc-900 text-white font-bold' : 'dark:bg-gray-700 bg-gray-300 dark:text-gray-300 hover:bg-opacity-80'}`}
                               >
                                 <AlignJustify className="w-3.5 h-3.5" />
                                 Parágrafo
                               </button>
                               <button 
                                   onClick={() => setPreset(FULL_SET_TEXT, 48, 'full-set')} 
-                                  className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs transition-all ${analysisPreset === 'full-set' ? 'bg-indigo-600 text-white' : 'dark:bg-gray-700 bg-gray-300 dark:text-gray-300 hover:bg-opacity-80'}`}
+                                  className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs transition-all whitespace-nowrap ${analysisPreset === 'full-set' ? 'dark:bg-white dark:text-black bg-zinc-900 text-white font-bold' : 'dark:bg-gray-700 bg-gray-300 dark:text-gray-300 hover:bg-opacity-80'}`}
                               >
                                 <Type className="w-3.5 h-3.5" />
                                 Corrido
@@ -1321,7 +1554,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                                       setAnalysisPreset('words-overlay');
                                       setHasVisitedOverlay(true);
                                   }} 
-                                  className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs transition-all ${analysisPreset === 'words-overlay' ? 'bg-purple-600 text-white' : 'dark:bg-gray-700 bg-gray-300 dark:text-gray-300 hover:bg-opacity-80'}`}                
+                                  className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs transition-all whitespace-nowrap ${analysisPreset === 'words-overlay' ? 'dark:bg-white dark:text-black bg-zinc-900 text-white font-bold' : 'dark:bg-gray-700 bg-gray-300 dark:text-gray-300 hover:bg-opacity-80'}`}                
                               >
                                   <Layers className="w-3.5 h-3.5" />
                                   Palavra
@@ -1333,13 +1566,13 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
             </div>
 
             {/* Right Block: Ajustes de Fonte e Exportar PDF */}
-            <div className="flex items-end gap-6 flex-wrap">
+            <div className="flex items-stretch sm:items-end gap-3 sm:gap-6 flex-wrap w-full lg:w-auto justify-between sm:justify-end">
                 {/* Settings Group */}
                 {viewMode !== 'metrics' && (
-                    <div className="flex gap-4 items-end flex-wrap">
+                    <div className="flex gap-2 sm:gap-4 items-end flex-wrap">
                         <div className="flex flex-col gap-1">
                             <span className="text-[9px] uppercase font-bold text-gray-500 tracking-wider">Tamanho</span>
-                            <div className="flex items-center gap-2 px-2 dark:bg-gray-700/50 bg-gray-300/50 rounded p-1">
+                            <div className="flex items-center gap-1.5 px-2 dark:bg-gray-700/50 bg-gray-300/50 rounded p-1">
                                 <Type className="w-4 h-4 dark:text-gray-400 text-gray-600" />
                                 <input 
                                     type="number" 
@@ -1352,10 +1585,10 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                         </div>
                         <div className="flex flex-col gap-1">
                             <span className="text-[9px] uppercase font-bold text-gray-500 tracking-wider">Entrelinha</span>
-                            <div className="flex items-center gap-2 px-2 dark:bg-gray-700/50 bg-gray-300/50 rounded p-1">
+                            <div className="flex items-center gap-1.5 px-2 dark:bg-gray-700/50 bg-gray-300/50 rounded p-1">
                                  <ArrowUpDown className="w-4 h-4 dark:text-gray-400 text-gray-600" />
                                 <input 
-                                    type="number"
+                                    type="number" 
                                     step="0.1" 
                                     min="0.8"
                                     max="3.0"
@@ -1378,7 +1611,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                                     <button
                                         key={align.id}
                                         onClick={() => setTextAlign(align.id as any)}
-                                        className={`p-1.5 rounded transition-colors ${textAlign === align.id ? 'bg-indigo-600 text-white' : 'dark:text-gray-400 text-gray-600 hover:bg-gray-400/20'}`}
+                                        className={`p-1.5 rounded transition-colors ${textAlign === align.id ? 'dark:bg-white bg-zinc-900 dark:text-black text-white' : 'dark:text-gray-400 text-gray-600 hover:bg-gray-400/20'}`}
                                         title={align.id}
                                     >
                                       {align.icon}
@@ -1397,7 +1630,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                                     <button
                                         key={casing.id}
                                         onClick={() => setTextCase(casing.id as any)}
-                                        className={`px-2 py-1 rounded text-xs font-black tracking-wider transition-colors ${textCase === casing.id ? 'bg-indigo-600 text-white' : 'dark:text-gray-400 text-gray-500 hover:bg-gray-400/20'}`}
+                                        className={`px-2 py-1 rounded text-xs font-black tracking-wider transition-colors ${textCase === casing.id ? 'dark:bg-white bg-zinc-900 dark:text-black text-white' : 'dark:text-gray-400 text-gray-500 hover:bg-gray-400/20'}`}
                                         title={casing.id === 'normal' ? 'Normal' : casing.id === 'uppercase' ? 'Caixa Alta' : 'Caixa Baixa'}
                                     >
                                       {casing.label}
@@ -1413,11 +1646,12 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                     <button
                         onClick={() => handlePdfExport()}
                         disabled={isExportingPdf}
-                        className="flex items-center gap-2 px-6 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-sm font-black transition-all shadow-lg shadow-rose-600/30 h-[38px] self-end"
-                        title="Exportar PDF"
+                        className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2 dark:bg-white dark:hover:bg-zinc-200 dark:text-black bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md shadow-black/10 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed h-[38px] self-end cursor-pointer w-full sm:w-auto"
+                        title="Exportar Relatório PDF em Alta Resolução (HD 300 DPI)"
                     >
-                        {isExportingPdf ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
-                        <span className="inline uppercase tracking-widest text-xs">PDF</span>
+                        {isExportingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                        <span className="inline">Relatório PDF</span>
+                        <span className="text-[10px] font-black dark:bg-black/20 bg-white/20 px-1.5 py-0.5 rounded tracking-normal">HD</span>
                     </button>
                 )}
             </div>
@@ -1431,7 +1665,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                         setTestText(e.target.value);
                         setAnalysisPreset('custom');
                     }}
-                    className="w-full dark:bg-gray-700/80 bg-gray-300/80 border dark:border-gray-600 border-gray-400 rounded-xl px-4 py-3 text-lg dark:text-gray-200 text-gray-800 font-sans resize-none h-24 leading-tight shadow-inner focus:ring-1 focus:ring-indigo-500/50 outline-none"
+                    className="w-full dark:bg-gray-700/80 bg-gray-300/80 border dark:border-gray-600 border-gray-400 rounded-xl px-4 py-3 text-lg dark:text-gray-200 text-gray-800 font-sans resize-none h-24 leading-tight shadow-inner focus:ring-1 focus:ring-zinc-500 dark:focus:ring-zinc-400 outline-none"
                     placeholder="Insira o texto para análise..."
                 />
                 
@@ -1439,7 +1673,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                 <div className="flex flex-col gap-2 p-3 bg-slate-300/30 dark:bg-slate-900/40 rounded-xl border dark:border-slate-800/80 border-slate-300/80">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <span className="text-[10px] uppercase font-black dark:text-gray-400 text-gray-500 tracking-widest flex items-center gap-1.5">
-                            <span className="inline-block w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                            <span className="inline-block w-2 h-2 rounded-full dark:bg-white bg-zinc-900 animate-pulse"></span>
                             Variações de {viewMode === 'side-by-side' ? 'Parágrafos (Manchas de Texto)' : 'Palavras (Sobreposição)'}:
                         </span>
                         <span className="text-[9px] dark:text-gray-500 text-gray-400 italic">
@@ -1459,7 +1693,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                                     }}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
                                         isSelected
-                                            ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 scale-[1.02]'
+                                            ? 'dark:bg-white dark:text-black bg-zinc-900 text-white shadow-md shadow-black/10 scale-[1.02]'
                                             : 'dark:bg-slate-800/80 bg-slate-200/80 dark:text-slate-300 text-slate-700 hover:bg-slate-300 dark:hover:bg-slate-700/90 border dark:border-slate-700 border-slate-300'
                                     }`}
                                     title={p.text}
@@ -1475,24 +1709,24 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
       </div>
 
       {/* Canvas Area */}
-      <div className="flex-1 overflow-auto dark:bg-gray-950 bg-gray-50 relative">
+      <div className="flex-1 min-h-[480px] overflow-x-auto overflow-y-auto dark:bg-gray-950 bg-gray-50 relative custom-scrollbar touch-scroll-area touch-pan-y touch-pan-x">
         
         {viewMode === 'side-by-side' && (
              <div 
                 ref={exportRef} 
                 data-export-target="true"
-                className={`flex gap-0 min-h-full divide-x divide-gray-800 dark:bg-gray-950 bg-gray-50`}
+                className={`flex gap-0 min-h-full min-w-full divide-x divide-gray-800 dark:bg-gray-950 bg-gray-50 overflow-visible touch-scroll-area touch-pan-y touch-pan-x`}
              >
                 {/* 1. Original */}
                 {activeMethods.includes(MethodType.ORIGINAL) && (
-                <div className={`flex flex-col flex-1 dark:bg-gray-900/30 bg-gray-100/30 order-1 overflow-visible ${activeMethods.length === 1 ? 'min-w-full' : activeMethods.length === 2 ? 'min-w-[100vw] md:min-w-[50%] lg:min-w-[500px]' : activeMethods.length === 3 ? 'min-w-[100vw] md:min-w-[50%] lg:min-w-[33.333%] xl:min-w-[400px]' : 'min-w-[100vw] md:min-w-[50%] lg:min-w-[25%] xl:min-w-[350px]'} shrink-0`}>
+                <div className={`flex flex-col flex-1 dark:bg-gray-900/30 bg-gray-100/30 order-1 overflow-visible ${activeMethods.length === 1 ? 'min-w-full' : activeMethods.length === 2 ? 'min-w-[320px] sm:min-w-[420px] md:min-w-[48%]' : activeMethods.length === 3 ? 'min-w-[300px] sm:min-w-[360px] md:min-w-[32%]' : 'min-w-[280px] sm:min-w-[320px] md:min-w-[24%]'} shrink-0`}>
                      <div className="p-3 border-b dark:border-gray-800 border-gray-200 dark:bg-gray-900 bg-gray-100 flex justify-between items-center sticky top-0 z-10" data-html2canvas-ignore>
                          <h4 className="text-sm font-bold uppercase tracking-widest dark:text-gray-400 text-gray-600 truncate max-w-[200px]" title={labelOriginal}>
                             {labelOriginal}
                          </h4>
-                         <button onClick={() => handleExport(MethodType.ORIGINAL)} className="flex items-center gap-2.5 px-4 py-2.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-black uppercase tracking-widest text-xs rounded-lg border border-slate-300 dark:border-slate-700 transition-all" data-html2canvas-ignore><Download className="w-4 h-4"/> OTF</button>
+                         <button onClick={() => handleExport(MethodType.ORIGINAL)} className="flex items-center gap-2.5 px-4 py-2.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-black uppercase tracking-widest text-xs rounded-lg border border-slate-300 dark:border-slate-700 transition-all cursor-pointer" data-html2canvas-ignore><Download className="w-4 h-4"/> OTF</button>
                      </div>
-                     <div className="p-6 md:p-8 flex-1 overflow-visible flex items-start justify-start">
+                     <div className="p-4 sm:p-6 md:p-8 flex-1 overflow-visible flex items-start justify-start">
                         <p style={{ fontFamily: originalFont?.fullFontFamily || 'serif', fontSize: `${fontSize}px`, lineHeight: lineHeight }} className={`dark:text-gray-300 text-gray-700 whitespace-pre-wrap break-words w-full h-auto text-${textAlign}`}>
                             <RenderedText text={processedText} baseChar={selectedAdjustment?.char || null} />
                         </p>
@@ -1502,12 +1736,12 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
 
                 {/* 1.5 Ajuste Manual */}
                 {activeMethods.includes(MethodType.ORIGINAL_CUSTOM) && (
-                    <div className={`flex flex-col flex-1 order-2 overflow-visible ${activeMethods.length === 1 ? 'min-w-full' : activeMethods.length === 2 ? 'min-w-[100vw] md:min-w-[50%] lg:min-w-[500px]' : activeMethods.length === 3 ? 'min-w-[100vw] md:min-w-[50%] lg:min-w-[33.333%] xl:min-w-[400px]' : 'min-w-[100vw] md:min-w-[50%] lg:min-w-[25%] xl:min-w-[350px]'} shrink-0`}>
+                    <div className={`flex flex-col flex-1 order-2 overflow-visible ${activeMethods.length === 1 ? 'min-w-full' : activeMethods.length === 2 ? 'min-w-[320px] sm:min-w-[420px] md:min-w-[48%]' : activeMethods.length === 3 ? 'min-w-[300px] sm:min-w-[360px] md:min-w-[32%]' : 'min-w-[280px] sm:min-w-[320px] md:min-w-[24%]'} shrink-0`}>
                          <div className="p-3 border-b dark:border-gray-800 border-gray-200 dark:bg-gray-900 bg-gray-100 flex justify-between items-center sticky top-0 z-10" data-html2canvas-ignore>
                              <h4 className="text-sm font-bold uppercase tracking-widest dark:text-slate-400 text-slate-600">Ajuste Manual</h4>
-                             <button onClick={() => handleExport(MethodType.ORIGINAL_CUSTOM)} className="flex items-center gap-2.5 px-4 py-2.5 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 text-blue-900 dark:text-blue-200 font-black uppercase tracking-widest text-xs rounded-lg border border-blue-300 dark:border-blue-700 transition-all" data-html2canvas-ignore><Download className="w-4 h-4"/> OTF</button>
+                             <button onClick={() => handleExport(MethodType.ORIGINAL_CUSTOM)} className="flex items-center gap-2.5 px-4 py-2.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-black uppercase tracking-widest text-xs rounded-lg border border-slate-300 dark:border-slate-700 transition-all cursor-pointer" data-html2canvas-ignore><Download className="w-4 h-4"/> OTF</button>
                          </div>
-                         <div className="p-6 md:p-8 flex-1 overflow-visible flex items-start justify-start">
+                         <div className="p-4 sm:p-6 md:p-8 flex-1 overflow-visible flex items-start justify-start">
                             <p style={{ fontFamily: fonts[MethodType.ORIGINAL_CUSTOM]?.fullFontFamily || 'serif', fontSize: `${fontSize}px`, lineHeight: lineHeight }} className={`dark:text-gray-200 text-gray-800 whitespace-pre-wrap break-words w-full h-auto text-${textAlign}`}>
                                 <RenderedText text={processedText} baseChar={selectedAdjustment?.char || null} />
                             </p>
@@ -1517,14 +1751,14 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
 
                 {/* 2. Adjusted / Tracy */}
                 {activeMethods.includes(MethodType.TRACY) && (
-                <div className={`flex flex-col flex-1 order-3 overflow-visible ${activeMethods.length === 1 ? 'dark:bg-gray-900/40 bg-gray-100/40 min-w-full' : activeMethods.length === 2 ? 'min-w-[100vw] md:min-w-[50%] lg:min-w-[500px]' : activeMethods.length === 3 ? 'min-w-[100vw] md:min-w-[50%] lg:min-w-[33.333%] xl:min-w-[400px]' : 'min-w-[100vw] md:min-w-[50%] lg:min-w-[25%] xl:min-w-[350px]'} shrink-0`}>
+                <div className={`flex flex-col flex-1 order-3 overflow-visible ${activeMethods.length === 1 ? 'dark:bg-gray-900/40 bg-gray-100/40 min-w-full' : activeMethods.length === 2 ? 'min-w-[320px] sm:min-w-[420px] md:min-w-[48%]' : activeMethods.length === 3 ? 'min-w-[300px] sm:min-w-[360px] md:min-w-[32%]' : 'min-w-[280px] sm:min-w-[320px] md:min-w-[24%]'} shrink-0`}>
                      <div className="p-3 border-b dark:border-gray-800 border-gray-200 dark:bg-gray-900 bg-gray-100 flex justify-between items-center sticky top-0 z-10" data-html2canvas-ignore>
-                         <h4 className={`text-sm font-bold uppercase tracking-widest ${isCompareMode ? 'text-cyan-400' : 'text-pink-400'} truncate max-w-[200px]`} title={labelTracy}>
+                         <h4 className="text-sm font-bold uppercase tracking-widest dark:text-white text-slate-900 truncate max-w-[200px]" title={labelTracy}>
                             {labelTracy}
                          </h4>
-                         <button onClick={() => handleExport(MethodType.TRACY)} className={`flex items-center gap-2.5 px-4 py-2.5 hover:bg-pink-200 dark:hover:bg-pink-900/50 text-pink-900 dark:text-pink-200 font-black uppercase tracking-widest text-xs rounded-lg border border-pink-300 dark:border-pink-700 transition-all ${isCompareMode ? 'bg-cyan-100 dark:bg-cyan-900/30' : 'bg-pink-100 dark:bg-pink-900/30'}`} data-html2canvas-ignore><Download className="w-4 h-4"/> OTF</button>
+                         <button onClick={() => handleExport(MethodType.TRACY)} className="flex items-center gap-2.5 px-4 py-2.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-black uppercase tracking-widest text-xs rounded-lg border border-slate-300 dark:border-slate-700 transition-all cursor-pointer" data-html2canvas-ignore><Download className="w-4 h-4"/> OTF</button>
                      </div>
-                     <div className="p-6 md:p-8 flex-1 overflow-visible flex items-start justify-start">
+                     <div className="p-4 sm:p-6 md:p-8 flex-1 overflow-visible flex items-start justify-start">
                         <p style={{ fontFamily: tracyFont?.fullFontFamily || 'serif', fontSize: `${fontSize}px`, lineHeight: lineHeight }} className={`dark:text-white text-slate-900 whitespace-pre-wrap break-words w-full h-auto text-${textAlign}`}>
                             <RenderedText text={processedText} baseChar={selectedAdjustment?.char || null} />
                         </p>
@@ -1534,12 +1768,12 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
 
                 {/* 3. Sousa */}
                 {activeMethods.includes(MethodType.SOUSA) && (
-                <div className={`flex flex-col flex-1 order-4 overflow-visible ${activeMethods.length === 1 ? 'min-w-full' : activeMethods.length === 2 ? 'min-w-[100vw] md:min-w-[50%] lg:min-w-[500px]' : activeMethods.length === 3 ? 'min-w-[100vw] md:min-w-[50%] lg:min-w-[33.333%] xl:min-w-[400px]' : 'min-w-[100vw] md:min-w-[50%] lg:min-w-[25%] xl:min-w-[350px]'} shrink-0`}>
+                <div className={`flex flex-col flex-1 order-4 overflow-visible ${activeMethods.length === 1 ? 'min-w-full' : activeMethods.length === 2 ? 'min-w-[320px] sm:min-w-[420px] md:min-w-[48%]' : activeMethods.length === 3 ? 'min-w-[300px] sm:min-w-[360px] md:min-w-[32%]' : 'min-w-[280px] sm:min-w-[320px] md:min-w-[24%]'} shrink-0`}>
                      <div className="p-3 border-b dark:border-gray-800 border-gray-200 dark:bg-gray-900 bg-gray-100 flex justify-between items-center sticky top-0 z-10" data-html2canvas-ignore>
-                         <h4 className="text-sm font-bold uppercase tracking-widest text-cyan-400 truncate max-w-[200px]">Método Miguel Sousa</h4>
-                         <button onClick={() => handleExport(MethodType.SOUSA)} className="flex items-center gap-2.5 px-4 py-2.5 bg-cyan-100 dark:bg-cyan-900/30 hover:bg-cyan-200 dark:hover:bg-cyan-900/50 text-cyan-900 dark:text-cyan-200 font-black uppercase tracking-widest text-xs rounded-lg border border-cyan-300 dark:border-cyan-700 transition-all" data-html2canvas-ignore><Download className="w-4 h-4"/> OTF</button>
+                         <h4 className="text-sm font-bold uppercase tracking-widest dark:text-white text-slate-900 truncate max-w-[200px]">Método Miguel Sousa</h4>
+                         <button onClick={() => handleExport(MethodType.SOUSA)} className="flex items-center gap-2.5 px-4 py-2.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-black uppercase tracking-widest text-xs rounded-lg border border-slate-300 dark:border-slate-700 transition-all cursor-pointer" data-html2canvas-ignore><Download className="w-4 h-4"/> OTF</button>
                      </div>
-                     <div className="p-6 md:p-8 flex-1 overflow-visible flex items-start justify-start">
+                     <div className="p-4 sm:p-6 md:p-8 flex-1 overflow-visible flex items-start justify-start">
                         <p style={{ fontFamily: sousaFont?.fullFontFamily || 'serif', fontSize: `${fontSize}px`, lineHeight: lineHeight }} className={`dark:text-white text-slate-900 whitespace-pre-wrap break-words w-full h-auto text-${textAlign}`}>
                             <RenderedText text={processedText} baseChar={selectedAdjustment?.char || null} />
                         </p>
@@ -1573,21 +1807,21 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                 
                 {activeMethods.includes(MethodType.TRACY) && (
                 <div className="pt-12">
-                    <h4 className="text-sm font-bold uppercase tracking-widest text-pink-500 mb-4">{labelTracy}</h4>
+                    <h4 className="text-sm font-bold uppercase tracking-widest dark:text-white text-zinc-900 mb-4">{labelTracy}</h4>
                     <p style={{ fontFamily: tracyFont?.fullFontFamily || 'serif', fontSize: `${fontSize}px`, lineHeight: lineHeight }} className="dark:text-white text-slate-900 whitespace-pre-wrap mb-4 text-left">
                         <RenderedText text={processedText} baseChar={selectedAdjustment?.char || null} />
                     </p>
-                    <button onClick={() => handleExport(MethodType.TRACY)} className="text-sm dark:text-pink-500 text-pink-600 dark:hover:text-white hover:text-slate-900 flex gap-2 items-center dark:bg-gray-800 bg-gray-200 px-3 py-1.5 rounded"><Download className="w-3 h-3"/> Download {isCompareMode ? labelTracy.toUpperCase() : 'TRACY'}</button>
+                    <button onClick={() => handleExport(MethodType.TRACY)} className="text-sm dark:text-white text-zinc-900 dark:hover:text-zinc-200 hover:text-black flex gap-2 items-center dark:bg-zinc-800 bg-zinc-200 border dark:border-zinc-700 border-zinc-300 px-3 py-1.5 rounded"><Download className="w-3 h-3"/> Download {isCompareMode ? labelTracy.toUpperCase() : 'TRACY'}</button>
                 </div>
                 )}
                 
                 {activeMethods.includes(MethodType.SOUSA) && (
                 <div className="pt-12">
-                    <h4 className="text-sm font-bold uppercase tracking-widest text-cyan-500 mb-4">Método Miguel Sousa</h4>
+                    <h4 className="text-sm font-bold uppercase tracking-widest dark:text-white text-zinc-900 mb-4">Método Miguel Sousa</h4>
                     <p style={{ fontFamily: sousaFont?.fullFontFamily || 'serif', fontSize: `${fontSize}px`, lineHeight: lineHeight }} className="dark:text-white text-slate-900 whitespace-pre-wrap mb-4 text-left">
                         <RenderedText text={processedText} baseChar={selectedAdjustment?.char || null} />
                     </p>
-                    <button onClick={() => handleExport(MethodType.SOUSA)} className="text-sm dark:text-cyan-500 text-cyan-600 dark:hover:text-white hover:text-slate-900 flex gap-2 items-center dark:bg-gray-800 bg-gray-200 px-3 py-1.5 rounded"><Download className="w-3 h-3"/> Download SOUSA</button>
+                    <button onClick={() => handleExport(MethodType.SOUSA)} className="text-sm dark:text-white text-zinc-900 dark:hover:text-zinc-200 hover:text-black flex gap-2 items-center dark:bg-zinc-800 bg-zinc-200 border dark:border-zinc-700 border-zinc-300 px-3 py-1.5 rounded"><Download className="w-3 h-3"/> Download SOUSA</button>
                 </div>
                 )}
              </div>
@@ -1597,70 +1831,73 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
              <div 
                 ref={exportRef} 
                 data-export-target="true"
-                className="min-h-full relative flex flex-col items-center justify-center dark:bg-gray-950 bg-gray-50 p-8"
+                className="min-h-full w-full relative flex flex-col items-center justify-start dark:bg-gray-950 bg-gray-50 p-4 sm:p-8 overflow-visible"
              >
-                <div className="absolute top-4 left-4 flex flex-wrap gap-4" data-html2canvas-ignore>
+                <div className="flex flex-wrap gap-3 w-full justify-start mb-6" data-html2canvas-ignore>
                      {activeMethods.includes(MethodType.ORIGINAL) && (
-                     <div className="flex items-center gap-2 px-3 py-1 dark:bg-gray-900 bg-gray-100 border dark:border-gray-800 border-gray-200 rounded">
-                        <div className="w-3 h-3 bg-gray-500"></div>
+                     <div className="flex items-center gap-2 px-3 py-1.5 dark:bg-gray-900 bg-gray-100 border dark:border-gray-800 border-gray-200 rounded-lg">
+                        <div className="w-3 h-3 bg-gray-500 rounded-sm"></div>
                         <span className="text-xs dark:text-gray-400 text-gray-600 font-bold uppercase tracking-wider">{labelOriginal}</span>
                      </div>
                      )}
                      {activeMethods.includes(MethodType.ORIGINAL_CUSTOM) && (
-                     <div className="flex items-center gap-2 px-3 py-1 dark:bg-gray-900 bg-gray-100 border dark:border-gray-800 border-gray-200 rounded">
-                        <div className="w-3 h-3 bg-blue-500"></div>
+                     <div className="flex items-center gap-2 px-3 py-1.5 dark:bg-gray-900 bg-gray-100 border dark:border-gray-800 border-gray-200 rounded-lg">
+                        <div className="w-3 h-3 dark:bg-white bg-zinc-900 rounded-sm"></div>
                         <span className="text-xs dark:text-gray-400 text-gray-600 font-bold uppercase tracking-wider">Ajuste Manual</span>
                      </div>
                      )}
                      {activeMethods.includes(MethodType.TRACY) && (
-                     <div className="flex items-center gap-2 px-3 py-1 dark:bg-gray-900 bg-gray-100 border dark:border-gray-800 border-gray-200 rounded">
-                        <div className={`w-3 h-3 ${isCompareMode ? 'bg-cyan-500' : 'bg-pink-500'}`}></div>
+                     <div className="flex items-center gap-2 px-3 py-1.5 dark:bg-gray-900 bg-gray-100 border dark:border-gray-800 border-gray-200 rounded-lg">
+                        <div className="w-3 h-3 dark:bg-zinc-400 bg-zinc-600 rounded-sm"></div>
                         <span className="text-xs dark:text-gray-400 text-gray-600 font-bold uppercase tracking-wider">{labelTracy}</span>
                      </div>
                      )}
                      {activeMethods.includes(MethodType.SOUSA) && (
-                     <div className="flex items-center gap-2 px-3 py-1 dark:bg-gray-900 bg-gray-100 border dark:border-gray-800 border-gray-200 rounded">
-                        <div className="w-3 h-3 bg-cyan-500"></div>
+                     <div className="flex items-center gap-2 px-3 py-1.5 dark:bg-gray-900 bg-gray-100 border dark:border-gray-800 border-gray-200 rounded-lg">
+                        <div className="w-3 h-3 dark:bg-zinc-500 bg-zinc-400 rounded-sm"></div>
                         <span className="text-xs dark:text-gray-400 text-gray-600 font-bold uppercase tracking-wider">Sousa</span>
                      </div>
                      )}
                 </div>
 
                 {/* Legend Overlay */}
-                <div className="overlay-legend absolute bottom-6 right-6 p-4 dark:bg-gray-900/60 bg-gray-100/60 backdrop-blur-md rounded-xl border dark:border-gray-800 border-gray-200 shadow-2xl flex flex-col gap-3 min-w-[180px] z-[50]" data-html2canvas-ignore>
-                    <h5 className="text-[11px] font-black uppercase tracking-[0.2em] dark:text-gray-500 text-gray-500 border-b dark:border-gray-800 border-gray-200 pb-2 mb-1">Métricas em Tempo Real</h5>
-                    
-                    {activeMethods.includes(MethodType.ORIGINAL) && (
-                    <div className="flex items-center gap-3">
-                        <div className="w-2.5 h-2.5 rounded-sm dark:bg-white/10 bg-black/10"></div>
-                        <span className="text-xs dark:text-gray-300 text-gray-700 font-bold">Ref. Original (Massa)</span>
+                <div className="overlay-legend p-3.5 sm:p-4 dark:bg-gray-900/80 bg-gray-100/90 backdrop-blur-md rounded-xl border dark:border-gray-800 border-gray-200 shadow-xl flex flex-wrap gap-4 items-center justify-between w-full mb-6 z-[20]" data-html2canvas-ignore>
+                    <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-black uppercase tracking-[0.2em] dark:text-gray-400 text-gray-600">Legenda Métricas:</span>
                     </div>
-                    )}
-                    
-                    {activeMethods.includes(MethodType.ORIGINAL_CUSTOM) && (
-                    <div className="flex items-center gap-3">
-                        <div className="w-2.5 h-2.5 rounded-sm border border-blue-500"></div>
-                        <span className="text-xs dark:text-gray-300 text-gray-700 font-bold">Ajuste Manual Contorno</span>
-                    </div>
-                    )}
+                    <div className="flex items-center gap-4 flex-wrap">
+                        {activeMethods.includes(MethodType.ORIGINAL) && (
+                        <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-sm dark:bg-white/20 bg-black/20"></div>
+                            <span className="text-xs dark:text-gray-300 text-gray-700 font-bold">Ref. Original (Massa)</span>
+                        </div>
+                        )}
+                        
+                        {activeMethods.includes(MethodType.ORIGINAL_CUSTOM) && (
+                        <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-sm border dark:border-white border-zinc-900"></div>
+                            <span className="text-xs dark:text-gray-300 text-gray-700 font-bold">Ajuste Manual Contorno</span>
+                        </div>
+                        )}
 
-                    {activeMethods.includes(MethodType.TRACY) && (
-                    <div className="flex items-center gap-3">
-                        <div className={`w-2.5 h-2.5 rounded-sm border ${isCompareMode ? 'border-cyan-400' : 'border-pink-500'}`}></div>
-                        <span className="text-xs dark:text-gray-300 text-gray-700 font-bold">Tracy Contorno</span>
+                        {activeMethods.includes(MethodType.TRACY) && (
+                        <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-sm border dark:border-zinc-400 border-zinc-600"></div>
+                            <span className="text-xs dark:text-gray-300 text-gray-700 font-bold">Tracy Contorno</span>
+                        </div>
+                        )}
+                        
+                        {activeMethods.includes(MethodType.SOUSA) && (
+                        <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-sm border dark:border-zinc-500 border-zinc-500"></div>
+                            <span className="text-xs dark:text-gray-300 text-gray-700 font-bold">Sousa Contorno</span>
+                        </div>
+                        )}
                     </div>
-                    )}
-                    
-                    {activeMethods.includes(MethodType.SOUSA) && (
-                    <div className="flex items-center gap-3">
-                        <div className="w-2.5 h-2.5 rounded-sm border border-cyan-400"></div>
-                        <span className="text-xs dark:text-gray-300 text-gray-700 font-bold">Sousa Contorno</span>
-                    </div>
-                    )}
                 </div>
 
                 <div 
-                    className="relative w-full overflow-y-auto max-h-[85vh] scrollbar-hide px-4 pt-12"
+                    className="relative w-full overflow-y-auto overflow-x-auto min-h-[420px] custom-scrollbar px-4 pt-6 pb-16 touch-scroll-area touch-pan-y touch-pan-x"
                     style={{ 
                         lineHeight: `${debouncedFontSize * debouncedLineHeight}px`,
                         backgroundImage: viewMode === 'overlay' ? 'none' : `var(--bg-grid-svg, ${grid})`,
@@ -1685,7 +1922,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
 
                     {/* 1. Reference (Original) */}
                     {activeMethods.includes(MethodType.ORIGINAL) && (
-                    <div className="absolute inset-0 pt-12 pointer-events-none">
+                    <div className="absolute inset-0 pt-6 pointer-events-none">
                         <p 
                             style={{ 
                                 fontFamily: originalFont?.fullFontFamily || 'serif', 
@@ -1703,7 +1940,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                     
                     {/* 1.5 Original Custom Overlay */}
                     {activeMethods.includes(MethodType.ORIGINAL_CUSTOM) && (
-                    <div className="absolute inset-0 pt-12 pointer-events-none">
+                    <div className="absolute inset-0 pt-6 pointer-events-none">
                         <p 
                             style={{ 
                                 fontFamily: fonts[MethodType.ORIGINAL_CUSTOM]?.fullFontFamily || 'serif', 
@@ -1722,7 +1959,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
 
                     {/* 2. Experimental (Tracy) */}
                     {activeMethods.includes(MethodType.TRACY) && (
-                    <div className="absolute inset-0 pt-12 pointer-events-none">
+                    <div className="absolute inset-0 pt-6 pointer-events-none">
                         <p 
                             style={{ 
                                 fontFamily: tracyFont?.fullFontFamily || 'serif', 
@@ -1741,7 +1978,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
 
                     {/* 3. Experimental (Sousa) */}
                     {activeMethods.includes(MethodType.SOUSA) && (
-                    <div className="absolute inset-0 pt-12 pointer-events-none">
+                    <div className="absolute inset-0 pt-6 pointer-events-none">
                         <p 
                             style={{ 
                                 fontFamily: sousaFont?.fullFontFamily || 'serif', 
@@ -1762,11 +1999,11 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
         )}
 
         {viewMode === 'metrics' && (
-             <div className="p-4 md:p-8 max-w-7xl mx-auto">
+             <div className="p-4 md:p-8 max-w-7xl mx-auto w-full overflow-x-auto overflow-y-visible custom-scrollbar touch-scroll-area touch-pan-y touch-pan-x">
                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div className="flex flex-col gap-1">
                         <h3 className="text-2xl font-bold flex gap-2 items-center dark:text-white text-slate-900">
-                            <BarChart2 className="text-blue-400" /> Diagrama de Espaçamentos
+                            <BarChart2 className="dark:text-white text-slate-900" /> Diagrama de Espaçamentos
                         </h3>
                         <p className="text-xs dark:text-slate-500 text-slate-500 uppercase font-black tracking-widest pl-7">Análise Técnica e Sistematização</p>
                     </div>
@@ -1798,7 +2035,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                                 placeholder="Pesquisar glifo ou Unicode (ex: U+0041, 65)..."
                                 value={searchQuery}
                                 onChange={handleSearchChange}
-                                className="w-full dark:bg-gray-800 bg-gray-200 border dark:border-gray-700 border-gray-300 rounded-lg pl-10 pr-4 py-2 text-xs dark:text-white text-slate-900 focus:border-blue-500 outline-none transition-all"
+                                className="w-full dark:bg-gray-800 bg-gray-200 border dark:border-gray-700 border-gray-300 rounded-lg pl-10 pr-4 py-2 text-xs dark:text-white text-slate-900 focus:border-zinc-500 dark:focus:border-zinc-400 outline-none transition-all"
                             />
                             {searchQuery && (
                                 <button 
@@ -1826,8 +2063,8 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                                  </div>
                                  <div className="w-px dark:bg-gray-700 bg-gray-300 hidden md:block"></div>
                                  <div className="flex-1">
-                                     <h4 className="font-bold text-cyan-400 mb-4">{labelTracy}</h4>
-                                     <div className="flex justify-between text-base mb-2 text-cyan-300">
+                                     <h4 className="font-bold dark:text-white text-slate-900 mb-4">{labelTracy}</h4>
+                                     <div className="flex justify-between text-base mb-2 dark:text-zinc-300 text-zinc-700">
                                          <span>Global Average Spacing</span>
                                          <span>{getAvgSB(MethodType.TRACY)} units</span>
                                      </div>
@@ -1931,12 +2168,12 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                             <div className="flex items-center gap-2">
                                <div className="hidden sm:flex items-center gap-2 bg-white dark:bg-slate-900 border dark:border-slate-800 border-slate-200 px-3 py-1.5 rounded-full shadow-sm">
                                    <span className="text-[11px] uppercase font-black dark:text-slate-500 text-slate-600">STATUS</span>
-                                   <span className="text-[11px] uppercase font-black px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-600 dark:text-blue-400">INDIVIDUAL</span>
+                                   <span className="text-[11px] uppercase font-black px-2 py-0.5 rounded-md dark:bg-zinc-800 bg-zinc-200 dark:text-zinc-200 text-zinc-800">INDIVIDUAL</span>
                                </div>
                                 <button onClick={() => setSelectedAdjustment(null)} className="p-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-lg transition-all shadow-sm">
                                     <X className="w-4 h-4 dark:text-slate-400 text-slate-600" />
                                 </button>
-                                <button onClick={() => setSelectedAdjustment(null)} className="ml-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all shadow-sm text-sm font-bold uppercase">
+                                <button onClick={() => setSelectedAdjustment(null)} className="ml-2 px-4 py-2 dark:bg-white dark:hover:bg-zinc-200 dark:text-black bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg transition-all shadow-sm text-sm font-bold uppercase">
                                     CONFIRMAR
                                 </button>
                              </div>
@@ -1950,15 +2187,15 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                                     {isModalEditing ? (
                                         <div className="flex flex-col items-center justify-center w-full py-2" onClick={(e) => e.stopPropagation()}>
                                             <input 
-                                                type="text"
+                                                type="text" 
                                                 value={modalTestText}
                                                 onChange={(e) => setModalTestText(e.target.value)}
                                                 onKeyDown={(e) => { if (e.key === 'Enter') setIsModalEditing(false); }}
                                                 onBlur={() => setIsModalEditing(false)}
                                                 autoFocus
-                                                className="text-center bg-transparent border-none outline-none font-mono text-base text-slate-800 dark:text-slate-200 border-b border-dashed border-pink-500/50 py-1 w-full max-w-xs focus:ring-0"
+                                                className="text-center bg-transparent border-none outline-none font-mono text-base text-slate-800 dark:text-slate-200 border-b border-dashed border-zinc-500 dark:border-zinc-400 py-1 w-full max-w-xs focus:ring-0"
                                             />
-                                            <p className="text-[10px] text-pink-500 mt-2 font-mono uppercase tracking-widest font-black animate-pulse">Enter para salvar</p>
+                                            <p className="text-[10px] dark:text-zinc-400 text-zinc-600 mt-2 font-mono uppercase tracking-widest font-black animate-pulse">Enter para salvar</p>
                                         </div>
                                     ) : (
                                         <div 
@@ -1969,7 +2206,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                                             <div className="text-3xl font-mono text-slate-800 dark:text-slate-200">
                                                 {modalTestText}
                                             </div>
-                                            <div className="absolute top-1 right-1 opacity-0 group-hover/preview:opacity-100 transition-opacity bg-pink-500/10 text-pink-400 p-1 rounded">
+                                            <div className="absolute top-1 right-1 opacity-0 group-hover/preview:opacity-100 transition-opacity dark:bg-zinc-800 bg-zinc-200 dark:text-white text-zinc-900 p-1 rounded">
                                                 <Edit2 className="w-3 h-3" />
                                             </div>
                                         </div>
@@ -1979,7 +2216,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                                 <div className="dark:bg-slate-900/50 bg-slate-50 p-4 rounded-2xl border dark:border-slate-800 border-slate-200 shadow-inner">
                                      <div className="flex justify-between items-center mb-3">
                                          <label className="text-xs font-black dark:text-slate-400 text-slate-600 uppercase tracking-widest">SIDE BEARING ESQUERDO</label>
-                                         <span className="px-3 py-1 bg-white dark:bg-slate-800 border dark:border-slate-700 border-slate-200 rounded-lg text-blue-500 font-bold text-sm shadow-sm">{selectedAdjustment.lsb}</span>
+                                         <span className="px-3 py-1 bg-white dark:bg-slate-800 border dark:border-slate-700 border-slate-200 rounded-lg dark:text-white text-zinc-900 font-bold text-sm shadow-sm">{selectedAdjustment.lsb}</span>
                                      </div>
                                      <input 
                                          type="range" min="-500" max="1500" value={selectedAdjustment.lsb}
@@ -1996,7 +2233,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                                                  });
                                              }
                                          }}
-                                         className="w-full accent-blue-500 h-1.5 dark:bg-slate-700 bg-slate-200 rounded-lg appearance-none cursor-pointer outline-none"
+                                         className="w-full accent-zinc-900 dark:accent-white h-1.5 dark:bg-slate-700 bg-slate-200 rounded-lg appearance-none cursor-pointer outline-none"
                                      />
                                 </div>
     
@@ -2004,7 +2241,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                                 <div className="dark:bg-slate-900/50 bg-slate-50 p-4 rounded-2xl border dark:border-slate-800 border-slate-200 shadow-inner">
                                      <div className="flex justify-between items-center mb-3">
                                          <label className="text-xs font-black dark:text-slate-400 text-slate-600 uppercase tracking-widest">SIDE BEARING DIREITO</label>
-                                         <span className="px-3 py-1 bg-white dark:bg-slate-800 border dark:border-slate-700 border-slate-200 rounded-lg text-emerald-500 font-bold text-sm shadow-sm">{selectedAdjustment.rsb}</span>
+                                         <span className="px-3 py-1 bg-white dark:bg-slate-800 border dark:border-slate-700 border-slate-200 rounded-lg dark:text-white text-zinc-900 font-bold text-sm shadow-sm">{selectedAdjustment.rsb}</span>
                                      </div>
                                      <input 
                                          type="range" min="-500" max="1500" value={selectedAdjustment.rsb}
@@ -2021,7 +2258,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                                                  });
                                              }
                                          }}
-                                         className="w-full accent-emerald-500 h-1.5 dark:bg-slate-700 bg-emerald-200 rounded-lg appearance-none cursor-pointer outline-none"
+                                         className="w-full accent-zinc-900 dark:accent-white h-1.5 dark:bg-slate-700 bg-slate-200 rounded-lg appearance-none cursor-pointer outline-none"
                                      />
                                 </div>
                             </div>
@@ -2070,7 +2307,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                         <div className="p-8">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-xl font-bold dark:text-white text-slate-900 flex items-center gap-3">
-                                    <Download className="w-6 h-6 text-blue-500" /> Baixar Fonte
+                                    <Download className="w-6 h-6 dark:text-white text-zinc-900" /> Baixar Fonte
                                 </h3>
                                 <button 
                                     onClick={() => setIsExportModalOpen(false)}
@@ -2098,7 +2335,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                                             if (e.key === 'Enter') confirmExport();
                                             if (e.key === 'Escape') setIsExportModalOpen(false);
                                         }}
-                                        className="w-full bg-slate-50 dark:bg-slate-800/50 border dark:border-slate-800 border-slate-200 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow font-medium text-slate-900 dark:text-white"
+                                        className="w-full bg-slate-50 dark:bg-slate-800/50 border dark:border-slate-800 border-slate-200 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-zinc-500 dark:focus:ring-zinc-400 outline-none transition-shadow font-medium text-slate-900 dark:text-white"
                                         placeholder="Ex: MinhaFonte_Trace"
                                     />
                                 </div>
@@ -2113,7 +2350,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                                 </button>
                                 <button 
                                     onClick={confirmExport}
-                                    className="flex-1 px-6 py-4 rounded-2xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
+                                    className="flex-1 px-6 py-4 rounded-2xl dark:bg-white dark:hover:bg-zinc-200 dark:text-black bg-zinc-900 hover:bg-zinc-800 text-white font-bold shadow-lg shadow-black/10 transition-all flex items-center justify-center gap-2"
                                 >
                                     <Download className="w-4 h-4" /> Baixar
                                 </button>
@@ -2138,60 +2375,220 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                         initial={{ scale: 0.95, opacity: 0, y: 20 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                        className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] shadow-2xl border dark:border-slate-800 border-slate-200 overflow-hidden"
+                        className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[2.5rem] shadow-2xl border dark:border-slate-800 border-slate-200 overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="p-8">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xl font-bold dark:text-white text-slate-900 flex items-center gap-3">
-                                    <FileText className="w-6 h-6 text-emerald-500" /> Relatório de Análise
-                                </h3>
+                            <div className="flex justify-between items-start mb-5">
+                                <div>
+                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full dark:bg-zinc-800 bg-zinc-100 border dark:border-zinc-700 border-zinc-200 dark:text-zinc-200 text-zinc-800 text-[10px] font-black uppercase tracking-wider mb-2">
+                                        <Sparkles className="w-3 h-3" />
+                                        <span>Motor de Alta Fidelidade (Ultra-HD 300–600 DPI)</span>
+                                    </div>
+                                    <h3 className="text-xl font-black dark:text-white text-slate-900 flex items-center gap-2.5 font-display tracking-tight">
+                                        <FileText className="w-5 h-5 dark:text-white text-zinc-900" /> Relatório Técnico em PDF
+                                    </h3>
+                                </div>
                                 <button 
                                     onClick={() => setIsReportExportModalOpen(false)}
-                                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors cursor-pointer"
+                                    aria-label="Fechar"
                                 >
                                     <X className="w-5 h-5 dark:text-slate-500 text-slate-400" />
                                 </button>
                             </div>
                             
-                            <p className="text-sm dark:text-slate-400 text-slate-500 mb-6 leading-relaxed">
-                                Escolha um nome para o arquivo do relatório PDF. O nome sugerido inclui a fonte original e o modo de visualização.
+                            <p className="text-xs dark:text-slate-400 text-slate-500 mb-5 leading-relaxed">
+                                Gere um documento gráfico diagramado em formato A4 Paisagem com cabeçalho técnico vetorial, métricas de ritmo tipográfico e renderização em altíssima resolução adaptativa.
                             </p>
-                            
-                            <div className="space-y-4 mb-8">
+
+                            {/* Technical Specs Specimen Box */}
+                            <div className="grid grid-cols-3 gap-2 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200/70 dark:border-slate-800/70 mb-6 text-[11px]">
                                 <div>
-                                    <label className="block text-xs font-black uppercase tracking-widest dark:text-slate-500 text-slate-400 mb-2 truncate">
-                                        Nome do Relatório (.pdf)
+                                    <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Resolução</span>
+                                    <span className="font-bold dark:text-zinc-200 text-zinc-800 font-mono">
+                                        {fontSize <= 20 ? 'Ultra-HD (600 DPI)' : 'HD (300+ DPI)'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Prancha</span>
+                                    <span className="font-bold text-slate-800 dark:text-slate-200">A4 Paisagem</span>
+                                </div>
+                                <div>
+                                    <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Visualização</span>
+                                    <span className="font-bold text-slate-800 dark:text-slate-200 truncate block">
+                                        {viewMode === 'side-by-side' ? 'Lado a Lado' : 'Sobreposição'}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-4 mb-7">
+                                <div>
+                                    <label className="block text-xs font-black uppercase tracking-wider dark:text-slate-400 text-slate-500 mb-2 truncate">
+                                        Nome do Arquivo do Relatório (.pdf)
                                     </label>
-                                    <input 
-                                        autoFocus
-                                        type="text" 
-                                        value={reportFileName}
-                                        onChange={(e) => setReportFileName(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') confirmReportExport();
-                                            if (e.key === 'Escape') setIsReportExportModalOpen(false);
-                                        }}
-                                        className="w-full bg-slate-50 dark:bg-slate-800/50 border dark:border-slate-800 border-slate-200 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow font-medium text-slate-900 dark:text-white"
-                                        placeholder="Ex: Relatorio_MinhaFonte"
-                                    />
+                                    <div className="relative flex items-center">
+                                        <input 
+                                            autoFocus
+                                            type="text" 
+                                            value={reportFileName}
+                                            onChange={(e) => setReportFileName(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') confirmReportExport();
+                                                if (e.key === 'Escape') setIsReportExportModalOpen(false);
+                                            }}
+                                            className="w-full bg-slate-50 dark:bg-slate-800/60 border dark:border-slate-800 border-slate-200 rounded-2xl pl-4 pr-14 py-3.5 focus:ring-2 focus:ring-zinc-500 dark:focus:ring-zinc-400 outline-none transition-shadow font-mono text-xs text-slate-900 dark:text-white"
+                                            placeholder="Ex: Relatorio_MinhaFonte"
+                                        />
+                                        <span className="absolute right-4 text-xs font-mono font-bold text-slate-400 select-none">
+                                            .pdf
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                             
                             <div className="flex gap-3">
                                 <button 
                                     onClick={() => setIsReportExportModalOpen(false)}
-                                    className="flex-1 px-6 py-4 rounded-2xl border dark:border-slate-800 border-slate-200 dark:text-slate-400 text-slate-600 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                                    className="flex-1 px-5 py-3.5 rounded-2xl border dark:border-slate-800 border-slate-200 dark:text-slate-400 text-slate-600 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-xs uppercase tracking-wider cursor-pointer"
                                 >
                                     Cancelar
                                 </button>
                                 <button 
                                     onClick={confirmReportExport}
-                                    className="flex-1 px-6 py-4 rounded-2xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
+                                    className="flex-1 px-5 py-3.5 rounded-2xl dark:bg-white dark:hover:bg-zinc-200 dark:text-black bg-zinc-900 hover:bg-zinc-800 text-white font-bold shadow-lg shadow-black/10 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-wider cursor-pointer"
                                 >
-                                    <FileText className="w-4 h-4" /> Exportar PDF
+                                    <Sparkles className="w-4 h-4" /> Gerar PDF HD
                                 </button>
                             </div>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+
+        {/* Full-Screen High-Definition Loading Modal */}
+        <AnimatePresence>
+            {isExportingPdf && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[250] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 select-none"
+                    style={{ pointerEvents: 'all' }}
+                >
+                    <motion.div
+                        initial={{ scale: 0.92, opacity: 0, y: 15 }}
+                        animate={{ scale: 1, opacity: 1, y: 0 }}
+                        exit={{ scale: 0.95, opacity: 0, y: 10 }}
+                        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl md:rounded-[2.5rem] shadow-2xl w-full max-w-lg p-7 md:p-8 overflow-hidden relative"
+                    >
+                        {/* System ambient glows */}
+                        <div className="absolute top-0 right-0 w-52 h-52 bg-zinc-400/10 dark:bg-zinc-600/10 blur-3xl rounded-full pointer-events-none" />
+                        <div className="absolute bottom-0 left-0 w-52 h-52 bg-zinc-400/10 dark:bg-zinc-600/10 blur-3xl rounded-full pointer-events-none" />
+
+                        <div className="relative z-10 flex flex-col items-center text-center">
+                            {/* Typographic Glyph Rhythm Specimen Visualizer */}
+                            <div className="w-20 h-20 rounded-2xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 flex flex-col items-center justify-center mb-4 relative overflow-hidden shadow-inner">
+                                <div className="flex items-center gap-1 font-serif text-slate-800 dark:text-slate-200 font-bold text-lg select-none">
+                                    <span className="dark:text-white text-zinc-900">H</span>
+                                    <span className="text-slate-400 dark:text-slate-500 text-xs">•</span>
+                                    <span className="dark:text-zinc-300 text-zinc-700">n</span>
+                                    <span className="text-slate-400 dark:text-slate-500 text-xs">•</span>
+                                    <span className="dark:text-zinc-400 text-zinc-600">O</span>
+                                </div>
+                                <span className="text-[9px] font-mono font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-widest mt-0.5">
+                                    300 DPI
+                                </span>
+                                
+                                {/* Side-bearing guide lines */}
+                                <div className="absolute inset-y-0 left-2 w-[1px] border-l border-dashed border-zinc-400/40 dark:border-zinc-600/40" />
+                                <div className="absolute inset-y-0 right-2 w-[1px] border-r border-dashed border-zinc-400/40 dark:border-zinc-600/40" />
+
+                                <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
+                                    className="absolute -inset-1 rounded-2xl border border-dashed border-zinc-400/40 dark:border-zinc-600/40 pointer-events-none"
+                                />
+                            </div>
+
+                            {/* HD Specs Chip */}
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full dark:bg-zinc-800 bg-zinc-100 border dark:border-zinc-700 border-zinc-200 dark:text-zinc-200 text-zinc-800 text-[11px] font-bold uppercase tracking-wider mb-2.5">
+                                <Sparkles className="w-3.5 h-3.5 animate-pulse dark:text-white text-zinc-900" />
+                                <span>Padrão Gráfico HD • 300 DPI • A4 Paisagem</span>
+                            </div>
+
+                            <h3 className="text-xl font-black tracking-tight text-slate-900 dark:text-white mb-1.5 font-display">
+                                Gerando Relatório Tipográfico
+                            </h3>
+                            
+                            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mb-5 leading-relaxed">
+                                Rasterizando curvas de Bézier e calculando ritmo de mancha gráfica com anti-aliasing geométrico de altíssima definição.
+                            </p>
+
+                            {/* Progress Bar with System Monochrome Style */}
+                            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 mb-2.5 overflow-hidden p-0.5 border border-slate-200 dark:border-slate-700/60 shadow-inner">
+                                <motion.div
+                                    className="h-full bg-zinc-900 dark:bg-white rounded-full"
+                                    animate={{ width: `${pdfExportStatus.progress}%` }}
+                                    transition={{ duration: 0.25, ease: "easeOut" }}
+                                />
+                            </div>
+
+                            {/* Progress Meta Row */}
+                            <div className="w-full flex justify-between items-center text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-4 px-1">
+                                <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-sans">
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin dark:text-white text-zinc-900" />
+                                    {pdfExportStatus.stage}
+                                </span>
+                                <div className="flex items-center gap-2 font-mono text-xs">
+                                    <span className="text-slate-400 dark:text-slate-500 text-[10px]">
+                                        {(exportElapsedMs / 1000).toFixed(1)}s
+                                    </span>
+                                    <span className="font-bold dark:text-white text-zinc-900">
+                                        {pdfExportStatus.progress}%
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* 4-Step Pipeline Badges */}
+                            <div className="w-full grid grid-cols-4 gap-1.5 p-2 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/60 dark:border-slate-800/60 text-[10px] font-bold text-slate-400 dark:text-slate-500 text-center mb-4">
+                                <div className={`p-1.5 rounded-lg transition-all ${pdfExportStatus.progress >= 15 ? 'bg-white dark:bg-zinc-800 dark:text-white text-zinc-900 shadow-sm border border-zinc-200 dark:border-zinc-700' : ''}`}>
+                                    1. Fontes
+                                </div>
+                                <div className={`p-1.5 rounded-lg transition-all ${pdfExportStatus.progress >= 35 ? 'bg-white dark:bg-zinc-800 dark:text-white text-zinc-900 shadow-sm border border-zinc-200 dark:border-zinc-700' : ''}`}>
+                                    2. Raster HD
+                                </div>
+                                <div className={`p-1.5 rounded-lg transition-all ${pdfExportStatus.progress >= 70 ? 'bg-white dark:bg-zinc-800 dark:text-white text-zinc-900 shadow-sm border border-zinc-200 dark:border-zinc-700' : ''}`}>
+                                    3. Pranchas
+                                </div>
+                                <div className={`p-1.5 rounded-lg transition-all ${pdfExportStatus.progress >= 95 ? 'bg-white dark:bg-zinc-800 dark:text-white text-zinc-900 shadow-sm border border-zinc-200 dark:border-zinc-700' : ''}`}>
+                                    4. Download
+                                </div>
+                            </div>
+
+                            {/* Technical Detail Message */}
+                            <p className="text-[11px] text-slate-400 dark:text-slate-500 italic max-w-sm font-mono truncate">
+                                {pdfExportStatus.detail}
+                            </p>
+
+                            {/* Adaptive Reassurance Note if processing takes a few seconds */}
+                            <AnimatePresence>
+                                {exportElapsedMs > 2500 && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0, y: 6 }}
+                                        animate={{ opacity: 1, height: 'auto', y: 0 }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        className="mt-3 w-full p-2.5 rounded-xl dark:bg-zinc-800/80 bg-zinc-100 border dark:border-zinc-700 border-zinc-300 text-[11px] dark:text-zinc-300 text-zinc-700 flex items-center gap-2 text-left"
+                                    >
+                                        <Sparkles className="w-3.5 h-3.5 shrink-0 dark:text-white text-zinc-900" />
+                                        <span className="leading-snug">
+                                            A calibragem a 300 DPI assegura fidelidade milimétrica para impressão e documentos vetoriais de alta resolução.
+                                        </span>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
                     </motion.div>
                 </motion.div>

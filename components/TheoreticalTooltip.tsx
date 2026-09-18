@@ -45,7 +45,7 @@ export const TheoreticalTooltip: React.FC<TheoreticalTooltipProps> = ({ content,
           e.stopPropagation();
           setIsVisible(!isVisible);
         }}
-        className="p-0.5 dark:text-slate-500 text-slate-500 hover:text-blue-400 transition-colors cursor-help inline-flex"
+        className="p-0.5 dark:text-slate-500 text-slate-500 dark:hover:text-white hover:text-zinc-900 transition-colors cursor-help inline-flex"
       >
         <Info className="w-3.5 h-3.5" />
       </span>
@@ -62,7 +62,7 @@ export const TheoreticalTooltip: React.FC<TheoreticalTooltipProps> = ({ content,
               side === 'top' ? 'top-full mt-2' : 'bottom-full mb-3'
             } w-[min(280px,85vw)] p-4 dark:bg-slate-950 bg-slate-50 border dark:border-slate-700 border-slate-300 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] pointer-events-auto`}
           >
-            <span className="text-xs font-black uppercase tracking-[0.15em] text-blue-400 mb-2 block border-b dark:border-slate-800 border-slate-200 pb-2 flex items-center justify-between">
+            <span className="text-xs font-black uppercase tracking-[0.15em] dark:text-zinc-200 text-zinc-900 mb-2 block border-b dark:border-slate-800 border-slate-200 pb-2 flex items-center justify-between">
               Fundamento Tipográfico
               <span 
                 role="button"

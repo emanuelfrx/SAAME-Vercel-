@@ -132,8 +132,8 @@ export const GlyphVisualizer: React.FC<GlyphVisualizerProps> = React.memo(({ cha
 
        <div className="absolute top-4 right-6 flex flex-col gap-1 z-10 pointer-events-none text-right">
             <div className="dark:bg-slate-900/80 bg-slate-100/80 backdrop-blur-sm border dark:border-slate-700/50 border-slate-300/50 px-4 py-1.5 rounded-xl text-xs font-mono shadow-2xl flex gap-4">
-               <span className="uppercase dark:text-slate-500 text-slate-500 font-black tracking-tighter">LSB: <span className="text-blue-500 dark:text-blue-400 font-bold ml-1">{lsb}</span></span>
-               <span className="uppercase dark:text-slate-500 text-slate-500 font-black tracking-tighter">RSB: <span className="text-emerald-500 dark:text-emerald-400 font-bold ml-1">{rsb}</span></span>
+               <span className="uppercase dark:text-slate-500 text-slate-500 font-black tracking-tighter">LSB: <span className="dark:text-white text-zinc-900 font-bold ml-1">{lsb}</span></span>
+               <span className="uppercase dark:text-slate-500 text-slate-500 font-black tracking-tighter">RSB: <span className="dark:text-white text-zinc-900 font-bold ml-1">{rsb}</span></span>
                <span className="uppercase dark:text-slate-500 text-slate-500 font-black tracking-tighter">AW: <span className="dark:text-slate-100 text-slate-900 font-bold ml-1">{Math.round(advanceLineX - originLineX)}</span></span>
             </div>
        </div>

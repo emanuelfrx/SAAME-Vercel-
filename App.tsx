@@ -68,8 +68,8 @@ const App: React.FC = () => {
                                  method === 'SOUSA' ? MethodType.SOUSA : 
                                  MethodType.ORIGINAL_CUSTOM;
                 
-                // Revoke old URL if it was a live update
-                if (prev[methodKey]?.url && prev[methodKey]?.fullFontFamily.includes('Live')) {
+                // Revoke old URL to prevent browser memory bloat
+                if (prev[methodKey]?.url) {
                     URL.revokeObjectURL(prev[methodKey]!.url);
                 }
 
@@ -419,10 +419,10 @@ const App: React.FC = () => {
                 });
             }
         };
-        const timer = setTimeout(updateTuner, 400); 
+        const timer = setTimeout(updateTuner, 350); 
         return () => { clearTimeout(timer); };
     }
-  }, [tracySettings, step, tuningTab, fontBuffer]);
+  }, [tracySettings, step, fontBuffer]);
 
   // Debounced Tuner Update for Sousa (Worker-assisted Shadow Metrics)
   useEffect(() => {
@@ -437,10 +437,10 @@ const App: React.FC = () => {
                 });
             }
         };
-        const timer = setTimeout(updateTuner, 400); 
+        const timer = setTimeout(updateTuner, 350); 
         return () => { clearTimeout(timer); };
     }
-  }, [sousaSettings, step, tuningTab, fontBuffer]);
+  }, [sousaSettings, step, fontBuffer]);
 
   // Debounced Tuner Update for Original Custom (Worker-assisted Shadow Metrics)
   useEffect(() => {
@@ -455,58 +455,64 @@ const App: React.FC = () => {
                 });
             }
         };
-        const timer = setTimeout(updateTuner, 400); 
+        const timer = setTimeout(updateTuner, 350); 
         return () => { clearTimeout(timer); };
     }
-  }, [originalCustomSettings, step, tuningTab, fontBuffer]);
+  }, [originalCustomSettings, step, fontBuffer]);
 
-  // NOVO: Renderização condicional da Tela Inicial
+  // Renderização condicional da Tela Inicial
   if (appMode === 'START') {
     return (
-      <div className="flex flex-col h-screen dark:bg-slate-950 bg-slate-50 dark:text-slate-200 text-slate-800 items-center lg:justify-center p-6 relative overflow-y-auto custom-scrollbar font-sans">
+      <div className="h-full w-full overflow-y-auto overflow-x-hidden flex flex-col justify-start items-center p-4 sm:p-6 md:p-8 pb-24 dark:bg-zinc-950 bg-white dark:text-zinc-200 text-zinc-900 relative custom-scrollbar font-sans">
         {/* Background Decor */}
-        <div className="absolute inset-0 bg-grid-pattern opacity-40 pointer-events-none" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600/10 blur-[150px] rounded-full pointer-events-none" />
-            <div className="text-center mb-16 relative">
+        <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none" />
+        
+        {/* Top Header Bar */}
+        <header className="w-full max-w-5xl flex items-center justify-between py-4 px-4 sm:px-6 mb-6 border-b dark:border-zinc-800 border-zinc-200 shrink-0 z-10">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-black dark:bg-white text-white dark:text-black rounded-lg shadow-sm">
+              <Activity className="w-5 h-5" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-xl font-black tracking-tight dark:text-white text-zinc-950">SAAME LAB</span>
+              <span className="text-[10px] uppercase tracking-widest font-mono text-zinc-400 dark:text-zinc-500 hidden sm:inline">v2.0</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-wider text-zinc-500">
+            <span className="hidden md:inline">Ambiente de Métricas Tipográficas</span>
+          </div>
+        </header>
+
+        {/* Hero Section */}
+        <div className="text-center mb-10 relative max-w-2xl mx-auto">
           <motion.div 
-            initial={{ scale: 0.8, opacity: 0, rotate: -10 }}
-            animate={{ 
-              scale: 1, 
-              opacity: 1, 
-              rotate: 0,
-              y: [0, -10, 0]
-            }}
-            transition={{ 
-              duration: 0.8,
-              y: { duration: 4, repeat: Infinity, ease: "easeInOut" }
-            }}
-            className="bg-gradient-to-br from-blue-500 to-indigo-600 p-6 rounded-3xl inline-block mb-10 shadow-2xl shadow-blue-500/20"
+            initial={{ scale: 0.85, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="dark:bg-white bg-black dark:text-black text-white p-4 rounded-xl inline-block mb-6 shadow-xl"
           >
-            <Activity className="w-16 h-16 dark:text-white text-slate-900" />
+            <Activity className="w-10 h-10" />
           </motion.div>
-            <motion.h1 
-            initial={{ y: 20, opacity: 0 }}
+          
+          <motion.h1 
+            initial={{ y: 15, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="text-6xl md:text-7xl font-black dark:text-white text-slate-900 mb-6 flex items-center justify-center tracking-tighter"
+            transition={{ delay: 0.1 }}
+            className="text-4xl sm:text-5xl md:text-6xl font-black dark:text-white text-zinc-950 mb-3 tracking-tight"
           >
-            <span
-              className="text-[#000000] dark:text-[#FFFFFF]"
-            >
-              SAAME
-            </span>
-            <span className="text-blue-500 font-light ml-4">Lab</span>
+            SAAME LAB
           </motion.h1>
           <motion.p 
-            initial={{ y: 20, opacity: 0 }}
+            initial={{ y: 15, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="dark:text-slate-400 text-slate-600 max-w-lg mx-auto text-xl md:text-2xl font-medium leading-relaxed"
+            transition={{ delay: 0.2 }}
+            className="dark:text-zinc-400 text-zinc-600 max-w-lg mx-auto text-lg sm:text-xl font-medium leading-relaxed"
           >
-            Sistema de Aplicação e Análise de Metodos de Espaçamento
+            Sistema de Aplicação e Análise de Métodos de Espaçamento
           </motion.p>
         </div>
         
+        {/* Mode Selector Cards */}
         <motion.div 
           initial="hidden"
           animate="show"
@@ -515,50 +521,51 @@ const App: React.FC = () => {
             show: {
               opacity: 1,
               transition: {
-                staggerChildren: 0.15,
-                delayChildren: 0.4
+                staggerChildren: 0.12,
+                delayChildren: 0.3
               }
             }
           }}
-          className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl relative"
+          className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl relative z-10"
         >
           <motion.button 
             variants={{
-              hidden: { y: 30, opacity: 0 },
+              hidden: { y: 20, opacity: 0 },
               show: { y: 0, opacity: 1 }
             }}
-            whileHover={{ y: -8, scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ y: -4, scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
             onClick={() => setAppMode('LAB')}
-            className="flex flex-col items-center p-10 dark:bg-slate-900/60 bg-slate-100/60 backdrop-blur-md border dark:border-slate-800 border-slate-200 rounded-3xl hover:border-blue-500/50 transition-all group shadow-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+            className="flex flex-col items-center p-8 dark:bg-zinc-900/60 bg-zinc-50/80 backdrop-blur-md border dark:border-zinc-800 border-zinc-300 rounded-xl hover:border-black dark:hover:border-white transition-all group shadow-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
             aria-label="Abrir Laboratório de Espaçamento"
           >
-            <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-6 border border-blue-500/20 group-hover:bg-blue-500/20 transition-colors shadow-[0_0_20px_rgba(59,130,246,0.1)]">
-              <PlayCircle className="w-10 h-10 text-blue-500" />
+            <div className="w-14 h-14 rounded-lg dark:bg-zinc-800 bg-zinc-200 border dark:border-zinc-700 border-zinc-300 flex items-center justify-center mb-5 dark:text-white text-black group-hover:dark:bg-white group-hover:bg-black group-hover:dark:text-black group-hover:text-white transition-all shadow-sm">
+              <PlayCircle className="w-7 h-7" />
             </div>
-            <h3 className="text-3xl font-black dark:text-white text-slate-900 mb-3">Laboratório de Espaçamento</h3>
-            <p className="dark:text-slate-500 text-slate-500 text-base text-center font-medium">Ajuste e processe fontes individuais usando métodos históricos e matemáticos.</p>
+            <h3 className="text-xl font-black dark:text-white text-zinc-950 mb-2 tracking-tight">Laboratório de Espaçamento</h3>
+            <p className="dark:text-zinc-400 text-zinc-600 text-sm text-center font-medium leading-relaxed">Ajuste e processe fontes individuais usando métodos históricos e matemáticos.</p>
           </motion.button>
  
           <motion.button 
             variants={{
-              hidden: { y: 30, opacity: 0 },
+              hidden: { y: 20, opacity: 0 },
               show: { y: 0, opacity: 1 }
             }}
-            whileHover={{ y: -8, scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ y: -4, scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
             onClick={() => setAppMode('COMPARE_SPACING')}
-            className="flex flex-col items-center p-10 dark:bg-slate-900/60 bg-slate-100/60 backdrop-blur-md border dark:border-slate-800 border-slate-200 rounded-3xl hover:border-indigo-500/50 transition-all group shadow-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-inset"
+            className="flex flex-col items-center p-8 dark:bg-zinc-900/60 bg-zinc-50/80 backdrop-blur-md border dark:border-zinc-800 border-zinc-300 rounded-xl hover:border-black dark:hover:border-white transition-all group shadow-lg focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
             aria-label="Abrir Fluxo de Comparação"
           >
-             <div className="w-16 h-16 bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-6 border border-indigo-500/20 group-hover:bg-indigo-500/20 transition-colors shadow-[0_0_20px_rgba(99,102,241,0.1)]">
-              <Columns className="w-10 h-10 text-indigo-500" />
+             <div className="w-14 h-14 rounded-lg dark:bg-zinc-800 bg-zinc-200 border dark:border-zinc-700 border-zinc-300 flex items-center justify-center mb-5 dark:text-white text-black group-hover:dark:bg-white group-hover:bg-black group-hover:dark:text-black group-hover:text-white transition-all shadow-sm">
+              <Columns className="w-7 h-7" />
             </div>
-            <h3 className="text-3xl font-black dark:text-white text-slate-900 mb-3">Fluxo de Comparação</h3>
-            <p className="dark:text-slate-500 text-slate-500 text-base text-center font-medium">Analise métricas entre duas fontes tipográficas de forma independente.</p>
+            <h3 className="text-xl font-black dark:text-white text-zinc-950 mb-2 tracking-tight">Fluxo de Comparação</h3>
+            <p className="dark:text-zinc-400 text-zinc-600 text-sm text-center font-medium leading-relaxed">Analise métricas entre duas fontes tipográficas de forma independente.</p>
           </motion.button>
         </motion.div>
         
+        {/* Educational Workflow Steps */}
         <motion.div 
           initial="hidden"
           animate="show"
@@ -567,75 +574,75 @@ const App: React.FC = () => {
             show: {
               opacity: 1,
               transition: {
-                staggerChildren: 0.1,
-                delayChildren: 0.8
+                staggerChildren: 0.08,
+                delayChildren: 0.5
               }
             }
           }}
-          className="mt-16 w-full max-w-4xl dark:bg-slate-900/40 bg-slate-100/40 backdrop-blur-sm border dark:border-slate-800/50 border-slate-200/50 rounded-3xl p-8"
+          className="mt-12 w-full max-w-4xl dark:bg-zinc-900/40 bg-zinc-100/60 backdrop-blur-sm border dark:border-zinc-800 border-zinc-200 rounded-xl p-6 md:p-8"
         >
-          <h4 className="text-sm uppercase tracking-[0.3em] text-blue-500 font-black mb-8 text-center">Como Funciona o SAAME</h4>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <h4 className="text-xs uppercase tracking-[0.25em] dark:text-zinc-300 text-zinc-700 font-mono font-black mb-6 text-center">Como Funciona o SAAME</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
             <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="flex flex-col items-center text-center">
-              <div className="w-10 h-10 rounded-full dark:bg-slate-800 bg-slate-200 flex items-center justify-center mb-3 text-blue-400 border dark:border-slate-700 border-slate-300 font-bold text-sm ring-4 ring-blue-500/5">1</div>
-              <h5 className="dark:text-white text-slate-900 font-bold text-sm mb-2">Upload da Fonte</h5>
-              <p className="dark:text-slate-500 text-slate-500 text-xs leading-relaxed">Carregue arquivos .otf ou .ttf para iniciar o processamento.</p>
+              <div className="w-8 h-8 rounded-full dark:bg-zinc-800 bg-zinc-200 flex items-center justify-center mb-2.5 dark:text-white text-black border dark:border-zinc-700 border-zinc-300 font-bold text-xs ring-2 ring-zinc-500/20">1</div>
+              <h5 className="dark:text-white text-zinc-900 font-bold text-sm mb-1">Upload da Fonte</h5>
+              <p className="dark:text-zinc-400 text-zinc-600 text-xs leading-relaxed">Carregue arquivos .otf ou .ttf para iniciar o processamento.</p>
             </motion.div>
             <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="flex flex-col items-center text-center">
-              <div className="w-10 h-10 rounded-full dark:bg-slate-800 bg-slate-200 flex items-center justify-center mb-3 text-blue-400 border dark:border-slate-700 border-slate-300 font-bold text-sm ring-4 ring-blue-500/5">2</div>
-              <h5 className="dark:text-white text-slate-900 font-bold text-sm mb-2">Ajuste de Métricas</h5>
-              <p className="dark:text-slate-500 text-slate-500 text-xs leading-relaxed">Utilize Tracy ou Sousa para definir side-bearings rítmicos.</p>
+              <div className="w-8 h-8 rounded-full dark:bg-zinc-800 bg-zinc-200 flex items-center justify-center mb-2.5 dark:text-white text-black border dark:border-zinc-700 border-zinc-300 font-bold text-xs ring-2 ring-zinc-500/20">2</div>
+              <h5 className="dark:text-white text-zinc-900 font-bold text-sm mb-1">Ajuste de Métricas</h5>
+              <p className="dark:text-zinc-400 text-zinc-600 text-xs leading-relaxed">Utilize Tracy ou Sousa para definir side-bearings rítmicos.</p>
             </motion.div>
             <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="flex flex-col items-center text-center">
-              <div className="w-10 h-10 rounded-full dark:bg-slate-800 bg-slate-200 flex items-center justify-center mb-3 text-blue-400 border dark:border-slate-700 border-slate-300 font-bold text-sm ring-4 ring-blue-500/5">3</div>
-              <h5 className="dark:text-white text-slate-900 font-bold text-sm mb-2">Análise Visual</h5>
-              <p className="dark:text-slate-500 text-slate-500 text-xs leading-relaxed">Compare as fontes em tempo real com diagramas de espaçamento.</p>
+              <div className="w-8 h-8 rounded-full dark:bg-zinc-800 bg-zinc-200 flex items-center justify-center mb-2.5 dark:text-white text-black border dark:border-zinc-700 border-zinc-300 font-bold text-xs ring-2 ring-zinc-500/20">3</div>
+              <h5 className="dark:text-white text-zinc-900 font-bold text-sm mb-1">Análise Visual</h5>
+              <p className="dark:text-zinc-400 text-zinc-600 text-xs leading-relaxed">Compare as fontes em tempo real com diagramas de espaçamento.</p>
             </motion.div>
             <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }} className="flex flex-col items-center text-center">
-              <div className="w-10 h-10 rounded-full dark:bg-slate-800 bg-slate-200 flex items-center justify-center mb-3 text-blue-400 border dark:border-slate-700 border-slate-300 font-bold text-sm ring-4 ring-blue-500/5">4</div>
-              <h5 className="dark:text-white text-slate-900 font-bold text-sm mb-2">Validação Final</h5>
-              <p className="dark:text-slate-500 text-slate-500 text-xs leading-relaxed">Verifique o ritmo em blocos de texto e refine glifos individuais.</p>
+              <div className="w-8 h-8 rounded-full dark:bg-zinc-800 bg-zinc-200 flex items-center justify-center mb-2.5 dark:text-white text-black border dark:border-zinc-700 border-zinc-300 font-bold text-xs ring-2 ring-zinc-500/20">4</div>
+              <h5 className="dark:text-white text-zinc-900 font-bold text-sm mb-1">Validação Final</h5>
+              <p className="dark:text-zinc-400 text-zinc-600 text-xs leading-relaxed">Verifique o ritmo em blocos de texto e refine glifos individuais.</p>
             </motion.div>
           </div>
         </motion.div>
 
-        {/* Novo Glossário de Ícones */}
+        {/* Glossário de Recursos */}
         <motion.div 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.2 }}
-            className="mt-8 grid grid-cols-2 md:grid-cols-5 gap-4 dark:bg-slate-900/30 bg-slate-100/30 p-4 rounded-2xl border dark:border-slate-800/40 border-slate-200/40"
+            transition={{ delay: 0.7 }}
+            className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 w-full max-w-4xl dark:bg-zinc-900/30 bg-zinc-100/40 p-3.5 rounded-lg border dark:border-zinc-800 border-zinc-200"
         >
-            <div className="flex items-center gap-2 px-3">
-                <PlayCircle className="w-3.5 h-3.5 text-blue-500" />
-                <span className="text-[11px] uppercase tracking-wider dark:text-slate-400 text-slate-600 font-bold">Laboratório</span>
+            <div className="flex items-center gap-2 px-2.5">
+                <PlayCircle className="w-3.5 h-3.5 dark:text-white text-black" />
+                <span className="text-[11px] uppercase tracking-wider dark:text-zinc-300 text-zinc-700 font-bold">Laboratório</span>
             </div>
-            <div className="flex items-center gap-2 px-3 border-l dark:border-slate-800/50 border-slate-200/50">
-                <Columns className="w-3.5 h-3.5 text-indigo-500" />
-                <span className="text-[11px] uppercase tracking-wider dark:text-slate-400 text-slate-600 font-bold">Comparação</span>
+            <div className="flex items-center gap-2 px-2.5 border-l dark:border-zinc-800 border-zinc-200">
+                <Columns className="w-3.5 h-3.5 dark:text-white text-black" />
+                <span className="text-[11px] uppercase tracking-wider dark:text-zinc-300 text-zinc-700 font-bold">Comparação</span>
             </div>
-            <div className="flex items-center gap-2 px-3 border-l dark:border-slate-800/50 border-slate-200/50">
-                <Activity className="w-3.5 h-3.5 text-blue-400" />
-                <span className="text-[11px] uppercase tracking-wider dark:text-slate-400 text-slate-600 font-bold">Métricas</span>
+            <div className="flex items-center gap-2 px-2.5 border-l dark:border-zinc-800 border-zinc-200">
+                <Activity className="w-3.5 h-3.5 dark:text-white text-black" />
+                <span className="text-[11px] uppercase tracking-wider dark:text-zinc-300 text-zinc-700 font-bold">Métricas</span>
             </div>
-            <div className="flex items-center gap-2 px-3 border-l dark:border-slate-800/50 border-slate-200/50">
-                <MousePointerClick className="w-3.5 h-3.5 text-green-400" />
-                <span className="text-[11px] uppercase tracking-wider dark:text-slate-400 text-slate-600 font-bold">Análise</span>
+            <div className="flex items-center gap-2 px-2.5 border-l dark:border-zinc-800 border-zinc-200">
+                <MousePointerClick className="w-3.5 h-3.5 dark:text-white text-black" />
+                <span className="text-[11px] uppercase tracking-wider dark:text-zinc-300 text-zinc-700 font-bold">Análise</span>
             </div>
-            <div className="flex items-center gap-2 px-3 border-l dark:border-slate-800/50 border-slate-200/50">
-                <HelpCircle className="w-3.5 h-3.5 dark:text-slate-400 text-slate-600" />
-                <span className="text-[11px] uppercase tracking-wider dark:text-slate-400 text-slate-600 font-bold">Ajuda</span>
+            <div className="flex items-center gap-2 px-2.5 border-l dark:border-zinc-800 border-zinc-200">
+                <HelpCircle className="w-3.5 h-3.5 dark:text-zinc-400 text-zinc-500" />
+                <span className="text-[11px] uppercase tracking-wider dark:text-zinc-300 text-zinc-700 font-bold">Ajuda</span>
             </div>
         </motion.div>
 
         <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 1.5 }}
-            className="mt-16 flex flex-col items-center gap-4 pb-12"
+            transition={{ delay: 0.9 }}
+            className="mt-10 flex flex-col items-center gap-3 pb-8"
         >
-            <div className="h-px w-24 dark:bg-slate-800 bg-slate-200" />
-            <p className="text-sm uppercase tracking-[0.4em] dark:text-slate-500 text-slate-500 font-bold">Desenvolvido para fins acadêmicos</p>
+            <div className="h-px w-20 dark:bg-zinc-800 bg-zinc-300" />
+            <p className="text-[11px] uppercase tracking-[0.25em] dark:text-zinc-500 text-zinc-500 font-bold">Desenvolvido para fins acadêmicos e tipográficos</p>
         </motion.div>
       </div>
     );
@@ -648,11 +655,9 @@ const App: React.FC = () => {
 
   // O RESTO DO COMPONENTE PERMANECE ABSOLUTAMENTE IGUAL (Fluxo LAB original)
   return (
-    <div className="flex flex-col h-screen dark:bg-slate-950 bg-slate-50 dark:text-slate-200 text-slate-800 font-sans relative overflow-hidden">
+    <div className="flex flex-col min-h-screen w-full dark:bg-slate-950 bg-slate-50 dark:text-slate-200 text-slate-800 font-sans relative">
       {/* Background Decor */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-40 pointer-events-none" />
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/5 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-600/5 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none" />
       
       {/* Loading Overlay */}
       <AnimatePresence>
@@ -661,113 +666,128 @@ const App: React.FC = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 z-[100] dark:bg-slate-950/80 bg-slate-50/80 backdrop-blur-md flex items-center justify-center flex-col"
+                className="absolute inset-0 z-[100] dark:bg-zinc-950/90 bg-white/90 backdrop-blur-md flex items-center justify-center flex-col"
             >
                 <div className="relative">
-                    <Loader2 className="w-12 h-12 text-blue-500 animate-spin" />
-                    <motion.div 
-                        animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                        className="absolute inset-0 bg-blue-500 blur-xl rounded-full -z-10"
-                    />
+                    <Loader2 className="w-12 h-12 dark:text-white text-black animate-spin" />
                 </div>
-                <h3 className="dark:text-white text-slate-900 text-xl font-semibold mt-6 tracking-wide">{processingStatus.title}</h3>
-                <p className="text-blue-400 font-medium mt-2 tracking-widest uppercase text-xs">{processingStatus.status}</p>
-                <div className="w-64 h-2 dark:bg-slate-800 bg-slate-200 rounded-full mt-4 overflow-hidden shadow-inner flex relative">
+                <h3 className="dark:text-white text-zinc-950 text-xl font-bold mt-6 tracking-wide">{processingStatus.title}</h3>
+                <p className="dark:text-zinc-400 text-zinc-600 font-mono font-bold mt-2 tracking-widest uppercase text-xs">{processingStatus.status}</p>
+                <div className="w-64 h-2 dark:bg-zinc-800 bg-zinc-200 rounded-full mt-4 overflow-hidden shadow-inner flex relative">
                     <motion.div 
                         initial={{ width: 0 }}
                         animate={{ width: `${processingStatus.progress}%` }}
                         transition={{ duration: 0.3, ease: "easeOut" }}
-                        className="h-full bg-blue-500 relative flex items-center justify-end"
-                    >
-                        <motion.div 
-                            animate={{ x: [-200, 200] }}
-                            transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-[200%]"
-                        />
-                    </motion.div>
+                        className="h-full dark:bg-white bg-black relative flex items-center justify-end"
+                    />
                 </div>
-                <p className="dark:text-slate-400 text-slate-600 mt-2 text-sm font-mono">{processingStatus.progress}%</p>
+                <p className="dark:text-zinc-400 text-zinc-600 mt-2 text-sm font-mono">{processingStatus.progress}%</p>
             </motion.div>
         )}
       </AnimatePresence>
 
       {/* Header */}
-      <header className="flex flex-col md:flex-row items-center justify-between px-6 py-4 dark:bg-slate-900/50 bg-slate-100/50 backdrop-blur-md border-b dark:border-slate-800/80 border-slate-200/80 gap-4 sticky top-0 z-50">
-        <div className="flex items-center gap-4 w-full md:w-auto">
-          {/* Adicionado botão Home para o fluxo Lab */}
-          <button 
-            onClick={() => setAppMode('START')} 
-            className="p-2 dark:hover:bg-slate-800 hover:bg-slate-200 rounded-lg dark:text-slate-500 text-slate-500 dark:hover:text-white hover:text-slate-900 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            title="Voltar ao Início"
-            aria-label="Ir para a Página Inicial"
-          >
-            <Home className="w-5 h-5" />
-          </button>
-          
-          <div className="h-8 w-px dark:bg-slate-800 bg-slate-200 hidden md:block" />
+      <header className="flex flex-col md:flex-row items-center justify-between px-3 sm:px-6 py-3 sm:py-4 dark:bg-zinc-900/80 bg-zinc-100/90 backdrop-blur-md border-b dark:border-zinc-800 border-zinc-200 gap-3 sm:gap-4 sticky top-0 z-50">
+        <div className="flex items-center justify-between w-full md:w-auto gap-3">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setAppMode('START')} 
+              className="p-2 dark:hover:bg-zinc-800 hover:bg-zinc-200 rounded-xl dark:text-zinc-400 text-zinc-600 dark:hover:text-white hover:text-black transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white shrink-0 min-h-[40px] min-w-[40px] flex items-center justify-center"
+              title="Voltar ao Início"
+              aria-label="Ir para a Página Inicial"
+            >
+              <Home className="w-5 h-5" />
+            </button>
+            
+            <div className="h-7 w-px dark:bg-zinc-800 bg-zinc-300 hidden sm:block" />
 
-          <div className="flex items-center gap-3 group">
-            <div className={`p-2 rounded-xl shadow-lg transition-all duration-500 ${step === AppStep.UPLOAD ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/20' : tuningTab === 'TRACY' ? 'bg-blue-600 shadow-blue-500/40 rotate-3' : 'bg-indigo-600 shadow-indigo-500/40 -rotate-3'}`}>
-              <Activity className="w-6 h-6 dark:text-white text-slate-900" />
+            <div className="flex items-center gap-2.5 group">
+              <div className="p-2 sm:p-2.5 rounded-xl shadow-md dark:bg-white bg-black dark:text-black text-white transition-all shrink-0">
+                <Activity className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight dark:text-white text-zinc-950 flex items-center leading-tight">
+                  <span className="text-black dark:text-white">
+                    SAAME
+                  </span>
+                  <span className="font-light ml-1.5 text-zinc-400 dark:text-zinc-500">Lab</span>
+                </h1>
+                <p className="hidden lg:block text-[11px] dark:text-zinc-400 text-zinc-600 uppercase tracking-[0.2em] font-medium truncate">Ambiente de Experimentação Tipográfica</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-black tracking-tight dark:text-white text-slate-900 flex items-center">
-                <span className="text-[#000000] dark:text-[#FFFFFF]">
-                  SAAME
-                </span>
-                <span className={`font-light ml-2 transition-colors duration-500 ${tuningTab === 'TRACY' ? 'text-blue-500' : 'text-indigo-400'}`}>Lab</span>
-              </h1>
-              <p className="hidden md:block text-[11px] dark:text-slate-500 text-slate-500 uppercase tracking-[0.2em] font-medium">Ambiente de Experimentação Tipográfica</p>
-            </div>
+          </div>
+
+          <div className="flex items-center gap-1 md:hidden">
+            <button 
+              onClick={() => setShowHelp(true)}
+              className="p-2 dark:hover:bg-zinc-800 hover:bg-zinc-200 rounded-lg dark:text-zinc-400 text-zinc-600 dark:hover:text-white hover:text-black transition-all min-h-[40px] min-w-[40px] flex items-center justify-center"
+              title="Guia de Ajuda"
+              aria-label="Abrir Guia de Ajuda"
+            >
+              <HelpCircle className="w-5 h-5" />
+            </button>
           </div>
         </div>
         
-        {/* Progress Stepper Improved (H1 & H4) */}
-        <div className="flex items-center gap-2 md:gap-4 text-sm font-bold uppercase tracking-[0.2em] w-full md:w-auto justify-center md:justify-end">
-            <div className={`flex items-center gap-3 transition-all duration-500 ${step === AppStep.UPLOAD ? 'text-blue-400' : fonts[MethodType.ORIGINAL] ? 'text-green-500' : 'text-slate-600 dark:text-slate-400'}`}>
-                <span className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${
-                  step === AppStep.UPLOAD ? 'border-blue-500 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.3)] dark:text-white text-slate-900' : 
-                  fonts[MethodType.ORIGINAL] ? 'border-green-500 bg-green-500/20 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)]' : 'dark:border-slate-800 border-slate-200'
+        {/* Progress Stepper Monocromático com Navegação Interativa e Responsiva */}
+        <div className="flex items-center gap-1.5 sm:gap-3 md:gap-4 text-xs sm:text-sm font-bold uppercase tracking-wider sm:tracking-[0.15em] w-full md:w-auto justify-center md:justify-end overflow-x-auto py-1 px-1 custom-scrollbar">
+            <button 
+                onClick={() => setStep(AppStep.UPLOAD)}
+                className={`flex items-center gap-1.5 sm:gap-2.5 transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white rounded-lg p-1.5 sm:p-2 cursor-pointer shrink-0 ${step === AppStep.UPLOAD ? 'dark:text-white text-black' : fonts[MethodType.ORIGINAL] ? 'dark:text-zinc-300 text-zinc-700 hover:opacity-80' : 'text-zinc-400 dark:text-zinc-600'}`}
+                title="Ir para Upload da Fonte"
+            >
+                <span className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 flex items-center justify-center font-mono text-xs transition-all ${
+                  step === AppStep.UPLOAD ? 'border-black dark:border-white dark:bg-white bg-black dark:text-black text-white shadow-sm font-black' : 
+                  fonts[MethodType.ORIGINAL] ? 'border-zinc-400 dark:border-zinc-600 dark:bg-zinc-800 bg-zinc-200 dark:text-white text-black font-bold' : 'dark:border-zinc-800 border-zinc-300'
                 }`}>
-                  {fonts[MethodType.ORIGINAL] && step !== AppStep.UPLOAD ? <CheckCircle2 className="w-4 h-4" /> : '01'}
+                  {fonts[MethodType.ORIGINAL] && step !== AppStep.UPLOAD ? <CheckCircle2 className="w-3.5 h-3.5" /> : '01'}
                 </span>
-                <div className="hidden lg:flex flex-col">
-                    <span className="leading-none">Fonte</span>
-                    <span className="text-[7px] dark:text-slate-500 text-slate-500 tracking-normal font-normal mt-1 italic opacity-60">Upload</span>
+                <div className="flex flex-col text-left">
+                    <span className="leading-none text-[11px] sm:text-xs">Fonte</span>
+                    <span className="hidden sm:inline text-[8px] dark:text-zinc-500 text-zinc-500 tracking-normal font-normal mt-0.5 italic opacity-70">Upload</span>
                 </div>
-            </div>
+            </button>
             
-            <div className={`w-6 md:w-8 h-0.5 rounded-full ${step !== AppStep.UPLOAD ? 'bg-blue-500/50' : 'dark:bg-slate-800 bg-slate-200'}`} />
+            <div className={`w-3 sm:w-5 md:w-6 h-0.5 rounded-full shrink-0 ${step !== AppStep.UPLOAD ? 'dark:bg-white bg-black' : 'dark:bg-zinc-800 bg-zinc-300'}`} />
             
-            <div className={`flex items-center gap-3 transition-all duration-500 ${step === AppStep.PREPARATION ? 'text-blue-400' : step === AppStep.ANALYSIS ? 'text-green-500' : 'text-slate-600 dark:text-slate-400'}`}>
-                <span className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${
-                  step === AppStep.PREPARATION ? 'border-blue-500 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.3)] dark:text-white text-slate-900' : 
-                  step === AppStep.ANALYSIS ? 'border-green-500 bg-green-500/20 text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)]' : 'dark:border-slate-800 border-slate-200'
+            <button 
+                onClick={() => fonts[MethodType.ORIGINAL] && setStep(AppStep.PREPARATION)}
+                disabled={!fonts[MethodType.ORIGINAL]}
+                className={`flex items-center gap-1.5 sm:gap-2.5 transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white rounded-lg p-1.5 sm:p-2 shrink-0 ${!fonts[MethodType.ORIGINAL] ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${step === AppStep.PREPARATION ? 'dark:text-white text-black' : step === AppStep.ANALYSIS ? 'dark:text-zinc-300 text-zinc-700 hover:opacity-80' : 'text-zinc-400 dark:text-zinc-600'}`}
+                title="Ir para Ajustes de Métricas"
+            >
+                <span className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 flex items-center justify-center font-mono text-xs transition-all ${
+                  step === AppStep.PREPARATION ? 'border-black dark:border-white dark:bg-white bg-black dark:text-black text-white shadow-sm font-black' : 
+                  step === AppStep.ANALYSIS ? 'border-zinc-400 dark:border-zinc-600 dark:bg-zinc-800 bg-zinc-200 dark:text-white text-black font-bold' : 'dark:border-zinc-800 border-zinc-300'
                 }`}>
-                  {step === AppStep.ANALYSIS ? <CheckCircle2 className="w-4 h-4" /> : '02'}
+                  {step === AppStep.ANALYSIS ? <CheckCircle2 className="w-3.5 h-3.5" /> : '02'}
                 </span>
-                <div className="hidden lg:flex flex-col">
-                    <span className="leading-none">Métricas</span>
-                    <span className="text-[7px] dark:text-slate-500 text-slate-500 tracking-normal font-normal mt-1 italic opacity-60">Ajuste</span>
+                <div className="flex flex-col text-left">
+                    <span className="leading-none text-[11px] sm:text-xs">Métricas</span>
+                    <span className="hidden sm:inline text-[8px] dark:text-zinc-500 text-zinc-500 tracking-normal font-normal mt-0.5 italic opacity-70">Ajuste</span>
                 </div>
-            </div>
+            </button>
             
-            <div className={`w-6 md:w-8 h-0.5 rounded-full ${step === AppStep.ANALYSIS ? 'bg-blue-500/50' : 'dark:bg-slate-800 bg-slate-200'}`} />
+            <div className={`w-3 sm:w-5 md:w-6 h-0.5 rounded-full shrink-0 ${step === AppStep.ANALYSIS ? 'dark:bg-white bg-black' : 'dark:bg-zinc-800 bg-zinc-300'}`} />
             
-             <div className={`flex items-center gap-3 transition-all duration-500 ${step === AppStep.ANALYSIS ? 'text-blue-400' : 'text-slate-600 dark:text-slate-400'}`}>
-                <span className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${step === AppStep.ANALYSIS ? 'border-blue-500 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.3)] dark:text-white text-slate-900' : 'dark:border-slate-800 border-slate-200'}`}>03</span>
-                <div className="hidden lg:flex flex-col">
-                    <span className="leading-none">Análise</span>
-                    <span className="text-[7px] dark:text-slate-500 text-slate-500 tracking-normal font-normal mt-1 italic opacity-60">Resultados</span>
+            <button 
+                onClick={() => fonts[MethodType.ORIGINAL] && setStep(AppStep.ANALYSIS)}
+                disabled={!fonts[MethodType.ORIGINAL]}
+                className={`flex items-center gap-1.5 sm:gap-2.5 transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white rounded-lg p-1.5 sm:p-2 shrink-0 ${!fonts[MethodType.ORIGINAL] ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${step === AppStep.ANALYSIS ? 'dark:text-white text-black' : 'text-zinc-400 dark:text-zinc-600 hover:opacity-80'}`}
+                title="Ir para Análise Comparativa"
+            >
+                <span className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 flex items-center justify-center font-mono text-xs transition-all ${step === AppStep.ANALYSIS ? 'border-black dark:border-white dark:bg-white bg-black dark:text-black text-white shadow-sm font-black' : 'dark:border-zinc-800 border-zinc-300'}`}>03</span>
+                <div className="flex flex-col text-left">
+                    <span className="leading-none text-[11px] sm:text-xs">Análise</span>
+                    <span className="hidden sm:inline text-[8px] dark:text-zinc-500 text-zinc-500 tracking-normal font-normal mt-0.5 italic opacity-70">Resultados</span>
                 </div>
-            </div>
+            </button>
 
-            <div className="h-8 w-px dark:bg-slate-800 bg-slate-200 mx-2 hidden md:block" />
+            <div className="h-6 w-px dark:bg-zinc-800 bg-zinc-300 mx-1 hidden md:block" />
 
             <button 
               onClick={() => setShowHelp(true)}
-              className="p-2 hover:bg-blue-500/10 rounded-lg dark:text-slate-500 text-slate-500 hover:text-blue-400 transition-all group focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="p-2 dark:hover:bg-zinc-800 hover:bg-zinc-200 rounded-lg dark:text-zinc-400 text-zinc-600 dark:hover:text-white hover:text-black transition-all group focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white hidden md:flex items-center justify-center min-h-[40px] min-w-[40px]"
               title="Guia de Ajuda"
               aria-label="Abrir Guia de Ajuda"
             >
@@ -777,7 +797,7 @@ const App: React.FC = () => {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto flex flex-col p-2 md:p-6 custom-scrollbar min-w-0">
+      <main className="flex-1 w-full flex flex-col p-2 sm:p-4 md:p-6 min-w-0 pb-16">
         
         {/* Help Modal (H10) */}
         <AnimatePresence>
@@ -789,163 +809,163 @@ const App: React.FC = () => {
               className="fixed inset-0 z-[200] dark:bg-slate-950/90 bg-slate-50/90 backdrop-blur-xl flex items-center justify-center p-4"
             >
               <motion.div 
-                initial={{ scale: 0.9, y: 20 }}
+                initial={{ scale: 0.95, y: 15 }}
                 animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.9, y: 20 }}
-                className="dark:bg-slate-900 bg-slate-100 border dark:border-slate-800 border-slate-200 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl"
+                exit={{ scale: 0.95, y: 15 }}
+                className="dark:bg-slate-900 bg-slate-100 border dark:border-slate-800 border-slate-200 rounded-xl w-full max-w-2xl overflow-hidden shadow-2xl"
               >
-                <div className="flex items-center justify-between p-6 border-b dark:border-slate-800 border-slate-200 dark:bg-slate-900/50 bg-slate-100/50">
-                  <div className="flex items-center gap-3 text-blue-400">
-                    <Zap className="w-6 h-6" />
-                    <h2 className="text-2xl font-black uppercase tracking-tight dark:text-white text-slate-900">Guia de Navegação SAAME</h2>
+                <div className="flex items-center justify-between p-5 border-b dark:border-zinc-800 border-zinc-200 dark:bg-zinc-900/50 bg-zinc-100/50">
+                  <div className="flex items-center gap-3 dark:text-white text-black">
+                    <Zap className="w-5 h-5" />
+                    <h2 className="text-lg font-black uppercase tracking-tight dark:text-white text-zinc-950">Guia de Navegação SAAME</h2>
                   </div>
                   <button 
                     onClick={() => setShowHelp(false)} 
-                    className="p-2 dark:hover:bg-slate-800 hover:bg-slate-200 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="p-1.5 dark:hover:bg-zinc-800 hover:bg-zinc-200 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
                     aria-label="Fechar Guia de Ajuda"
                   >
-                    <X className="w-6 h-6 dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900" />
+                    <X className="w-5 h-5 dark:text-zinc-400 text-zinc-600 dark:hover:text-white hover:text-black" />
                   </button>
                 </div>
-                <div className="p-8 space-y-12 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
                   {/* Grid of Areas */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <section className="dark:bg-slate-950/40 bg-slate-50/40 p-6 rounded-3xl border dark:border-slate-800/50 border-slate-200/50 flex flex-col gap-5 hover:border-blue-500/30 transition-colors">
-                      <div className="flex items-center gap-3">
-                         <div className="w-10 h-10 rounded-2xl bg-blue-500/20 flex items-center justify-center text-blue-400">
-                           <Activity className="w-5 h-5" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <section className="dark:bg-zinc-950/40 bg-zinc-50/60 p-5 rounded-xl border dark:border-zinc-800 border-zinc-200 flex flex-col gap-3 hover:border-black dark:hover:border-white transition-colors">
+                      <div className="flex items-center gap-2.5">
+                         <div className="w-8 h-8 rounded-lg dark:bg-zinc-800 bg-zinc-200 flex items-center justify-center dark:text-white text-black border dark:border-zinc-700 border-zinc-300">
+                           <Activity className="w-4 h-4" />
                          </div>
-                         <h3 className="dark:text-white text-slate-900 font-black text-base uppercase tracking-widest">Ajustador de Métricas</h3>
+                         <h3 className="dark:text-white text-zinc-950 font-black text-xs uppercase tracking-wider">Ajustador de Métricas</h3>
                       </div>
                       
                       {/* Animated Metaphor for Sliders */}
-                      <div className="h-24 dark:bg-slate-900/50 bg-slate-100/50 rounded-xl border dark:border-slate-800/30 border-slate-200/30 flex flex-col justify-center gap-3 px-6 overflow-hidden">
+                      <div className="h-16 dark:bg-zinc-900/50 bg-zinc-100/80 rounded-lg border dark:border-zinc-800 border-zinc-200 flex flex-col justify-center gap-2.5 px-5 overflow-hidden">
                         {[1, 2, 3].map(i => (
-                          <div key={i} className="flex items-center gap-3">
-                            <div className="h-1 flex-1 dark:bg-slate-800 bg-slate-200 rounded-full relative">
+                          <div key={i} className="flex items-center gap-2">
+                            <div className="h-1 flex-1 dark:bg-zinc-800 bg-zinc-300 rounded-full relative">
                               <motion.div 
                                 animate={{ left: i % 2 === 0 ? ['10%', '60%', '10%'] : ['70%', '20%', '70%'] }}
                                 transition={{ duration: 3 + i, repeat: Infinity, ease: "easeInOut" }}
-                                className="absolute -top-1 w-3 h-3 bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" 
+                                className="absolute -top-1 w-3 h-3 dark:bg-white bg-black rounded-full shadow-sm" 
                               />
                             </div>
                           </div>
                         ))}
                       </div>
                       
-                      <p className="dark:text-slate-400 text-slate-600 text-sm leading-relaxed">
-                        Controle o espaçamento usando métodos como <span className="text-blue-400 font-bold">Tracy</span> e <span className="text-indigo-400 font-bold">Sousa</span>. Altere valores globais ou por grupos de glifos no painel lateral.
+                      <p className="dark:text-zinc-400 text-zinc-600 text-xs leading-relaxed">
+                        Controle o espaçamento usando métodos como <span className="font-bold dark:text-white text-black">Tracy</span> e <span className="font-bold dark:text-white text-black">Sousa</span>. Altere valores globais ou por grupos de glifos no painel lateral.
                       </p>
                     </section>
 
-                    <section className="dark:bg-slate-950/40 bg-slate-50/40 p-6 rounded-3xl border dark:border-slate-800/50 border-slate-200/50 flex flex-col gap-5 hover:border-green-500/30 transition-colors">
-                      <div className="flex items-center gap-3">
-                         <div className="w-10 h-10 rounded-2xl bg-green-500/20 flex items-center justify-center text-green-400">
-                           <Zap className="w-5 h-5" />
+                    <section className="dark:bg-zinc-950/40 bg-zinc-50/60 p-5 rounded-xl border dark:border-zinc-800 border-zinc-200 flex flex-col gap-3 hover:border-black dark:hover:border-white transition-colors">
+                      <div className="flex items-center gap-2.5">
+                         <div className="w-8 h-8 rounded-lg dark:bg-zinc-800 bg-zinc-200 flex items-center justify-center dark:text-white text-black border dark:border-zinc-700 border-zinc-300">
+                           <Zap className="w-4 h-4" />
                          </div>
-                         <h3 className="dark:text-white text-slate-900 font-black text-base uppercase tracking-widest">Processamento</h3>
+                         <h3 className="dark:text-white text-zinc-950 font-black text-xs uppercase tracking-wider">Processamento</h3>
                       </div>
 
                       {/* Animated Metaphor for Processing/Validation */}
-                      <div className="h-24 dark:bg-slate-900/50 bg-slate-100/50 rounded-xl border dark:border-slate-800/30 border-slate-200/30 flex items-center justify-center gap-4 overflow-hidden">
+                      <div className="h-16 dark:bg-zinc-900/50 bg-zinc-100/80 rounded-lg border dark:border-zinc-800 border-zinc-200 flex items-center justify-center gap-3 overflow-hidden">
                         <motion.div 
                           animate={{ rotate: 360 }}
                           transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                          className="w-8 h-8 rounded-full border-2 border-dashed border-green-500/40 flex items-center justify-center"
+                          className="w-6 h-6 rounded-full border border-dashed dark:border-zinc-500 border-zinc-400 flex items-center justify-center"
                         >
-                          <RefreshCcw className="w-4 h-4 text-green-500/60" />
+                          <RefreshCcw className="w-3 h-3 dark:text-zinc-400 text-zinc-600" />
                         </motion.div>
                         <div className="flex flex-col gap-1">
                           <motion.div 
                             animate={{ opacity: [0.3, 1, 0.3] }}
                             transition={{ duration: 2, repeat: Infinity }}
-                            className="h-1.5 w-16 bg-green-500/20 rounded-full" 
+                            className="h-1 w-14 dark:bg-zinc-700 bg-zinc-300 rounded-full" 
                           />
                           <motion.div 
                             animate={{ opacity: [0.3, 1, 0.3] }}
                             transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
-                            className="h-1.5 w-12 bg-green-500/20 rounded-full" 
+                            className="h-1 w-10 dark:bg-zinc-700 bg-zinc-300 rounded-full" 
                           />
                         </div>
                         <motion.div
                           animate={{ scale: [0.8, 1, 0.8], opacity: [0.5, 1, 0.5] }}
                           transition={{ duration: 1.5, repeat: Infinity }}
                         >
-                          <CheckCircle2 className="w-6 h-6 text-green-500" />
+                          <CheckCircle2 className="w-4 h-4 dark:text-white text-black" />
                         </motion.div>
                       </div>
 
-                      <p className="dark:text-slate-400 text-slate-600 text-sm leading-relaxed">
+                      <p className="dark:text-zinc-400 text-zinc-600 text-xs leading-relaxed">
                         O sistema analisa a fonte automaticamente para identificar contraformas e sugerir métricas baseadas no design original.
                       </p>
                     </section>
 
-                    <section className="dark:bg-slate-950/40 bg-slate-50/40 p-6 rounded-3xl border dark:border-slate-800/50 border-slate-200/50 flex flex-col gap-5 hover:border-indigo-500/30 transition-colors">
-                      <div className="flex items-center gap-3">
-                         <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
-                           <Target className="w-5 h-5" />
+                    <section className="dark:bg-zinc-950/40 bg-zinc-50/60 p-5 rounded-xl border dark:border-zinc-800 border-zinc-200 flex flex-col gap-3 hover:border-black dark:hover:border-white transition-colors">
+                      <div className="flex items-center gap-2.5">
+                         <div className="w-8 h-8 rounded-lg dark:bg-zinc-800 bg-zinc-200 flex items-center justify-center dark:text-white text-black border dark:border-zinc-700 border-zinc-300">
+                           <Target className="w-4 h-4" />
                          </div>
-                         <h3 className="dark:text-white text-slate-900 font-black text-base uppercase tracking-widest">Tutoriais Visuais</h3>
+                         <h3 className="dark:text-white text-zinc-950 font-black text-xs uppercase tracking-wider">Tutoriais Visuais</h3>
                       </div>
 
                       {/* Visual Metaphor for Tutorial */}
-                      <div className="h-24 dark:bg-slate-900/50 bg-slate-100/50 rounded-xl border dark:border-slate-800/30 border-slate-200/30 flex items-center justify-center gap-3 overflow-hidden">
+                      <div className="h-16 dark:bg-zinc-900/50 bg-zinc-100/80 rounded-lg border dark:border-zinc-800 border-zinc-200 flex items-center justify-center gap-2 overflow-hidden">
                         {[1, 2, 3].map(i => (
-                          <div key={i} className="w-14 h-16 dark:bg-slate-800/50 bg-slate-200/50 rounded-lg border dark:border-slate-700/50 border-slate-300/50 flex flex-col gap-2 p-2">
-                             <div className="h-1 w-full dark:bg-slate-700 bg-slate-300 rounded-full" />
-                             <div className="h-1 w-2/3 dark:bg-slate-700 bg-slate-300 rounded-full" />
-                             <div className="mt-auto h-6 w-full dark:bg-slate-950/40 bg-slate-50/40 rounded flex items-center justify-center">
-                                <Activity className="w-3 h-3 dark:text-slate-500 text-slate-500" />
+                          <div key={i} className="w-10 h-12 dark:bg-zinc-800/50 bg-zinc-200/50 rounded-md border dark:border-zinc-700/50 border-zinc-300/50 flex flex-col gap-1 p-1.5">
+                             <div className="h-1 w-full dark:bg-zinc-700 bg-zinc-300 rounded-full" />
+                             <div className="h-1 w-2/3 dark:bg-zinc-700 bg-zinc-300 rounded-full" />
+                             <div className="mt-auto h-3 w-full dark:bg-zinc-950/40 bg-zinc-50/40 rounded flex items-center justify-center">
+                                <Activity className="w-2 h-2 dark:text-zinc-500 text-zinc-400" />
                              </div>
                           </div>
                         ))}
                       </div>
 
-                      <p className="dark:text-slate-400 text-slate-600 text-sm leading-relaxed">
+                      <p className="dark:text-zinc-400 text-zinc-600 text-xs leading-relaxed">
                         Entenda o embasamento teórico de cada método. Acompanhe diagramas interativos que explicam conceitos de ritmo e espaçamento sistemático.
                       </p>
                     </section>
 
-                    <section className="dark:bg-slate-950/40 bg-slate-50/40 p-6 rounded-3xl border dark:border-slate-800/50 border-slate-200/50 flex flex-col gap-5 hover:border-cyan-500/30 transition-colors">
-                      <div className="flex items-center gap-3">
-                         <div className="w-10 h-10 rounded-2xl bg-cyan-500/20 flex items-center justify-center text-cyan-400">
-                           <Type className="w-5 h-5" />
+                    <section className="dark:bg-zinc-950/40 bg-zinc-50/60 p-5 rounded-xl border dark:border-zinc-800 border-zinc-200 flex flex-col gap-3 hover:border-black dark:hover:border-white transition-colors">
+                      <div className="flex items-center gap-2.5">
+                         <div className="w-8 h-8 rounded-lg dark:bg-zinc-800 bg-zinc-200 flex items-center justify-center dark:text-white text-black border dark:border-zinc-700 border-zinc-300">
+                           <Type className="w-4 h-4" />
                          </div>
-                         <h3 className="dark:text-white text-slate-900 font-black text-base uppercase tracking-widest">Visualização</h3>
+                         <h3 className="dark:text-white text-zinc-950 font-black text-xs uppercase tracking-wider">Visualização</h3>
                       </div>
 
                       {/* Visual Metaphor for Preview */}
-                      <div className="h-24 dark:bg-slate-900/50 bg-slate-100/50 rounded-xl border dark:border-slate-800/30 border-slate-200/30 flex items-center justify-center overflow-hidden">
-                        <div className="text-3xl font-serif dark:text-white text-slate-900 opacity-40 flex items-baseline gap-1">
+                      <div className="h-16 dark:bg-zinc-900/50 bg-zinc-100/80 rounded-lg border dark:border-zinc-800 border-zinc-200 flex items-center justify-center overflow-hidden">
+                        <div className="text-2xl font-serif dark:text-white text-zinc-900 opacity-60 flex items-baseline gap-1">
                           <span>A</span>
                           <motion.span 
                             animate={{ x: [-2, 4, -2] }}
                             transition={{ duration: 2, repeat: Infinity }}
-                            className="text-cyan-400"
+                            className="dark:text-zinc-400 text-zinc-600 underline decoration-1"
                           >V</motion.span>
                           <span>W</span>
                         </div>
                       </div>
 
-                      <p className="dark:text-slate-400 text-slate-600 text-sm leading-relaxed">
+                      <p className="dark:text-zinc-400 text-zinc-600 text-xs leading-relaxed">
                         Teste sua fonte com textos reais em tempo real. Alterne entre fundo claro/escuro e veja o comportamento do "cinza tipográfico".
                       </p>
                     </section>
                   </div>
 
-                  <section className="bg-blue-500/5 p-6 rounded-2xl border border-blue-500/20">
-                    <h4 className="text-blue-300 font-bold text-base mb-2 italic flex items-center gap-2">
-                      <HelpCircle className="w-4 h-4" /> Fluxo Sugerido
+                  <section className="dark:bg-zinc-900/40 bg-zinc-100/70 p-4 rounded-lg border dark:border-zinc-800 border-zinc-200">
+                    <h4 className="dark:text-zinc-200 text-zinc-800 font-bold text-xs mb-1.5 font-mono uppercase tracking-wider flex items-center gap-2">
+                      <HelpCircle className="w-3.5 h-3.5" /> Fluxo Sugerido
                     </h4>
-                    <p className="dark:text-slate-400 text-slate-600 text-sm leading-relaxed">
-                      Comece ajustando os <span className="dark:text-white text-slate-900">Caracteres Mestre</span> no método Tracy, valide o resultado nos <span className="dark:text-white text-slate-900">Grupos de Afinidade</span> do método Sousa e finalize com o teste de leitura na área de <span className="dark:text-white text-slate-900">Pré-visualização</span>.
+                    <p className="dark:text-zinc-400 text-zinc-600 text-xs leading-relaxed">
+                      Comece ajustando os <span className="dark:text-white text-black font-bold">Caracteres Mestre</span> no método Tracy, valide o resultado nos <span className="dark:text-white text-black font-bold">Grupos de Afinidade</span> do método Sousa e finalize com o teste de leitura na área de <span className="dark:text-white text-black font-bold">Pré-visualização</span>.
                     </p>
                   </section>
                 </div>
-                <div className="p-6 border-t dark:border-slate-800 border-slate-200 dark:bg-slate-900/50 bg-slate-100/50 flex justify-end">
+                <div className="p-4 border-t dark:border-zinc-800 border-zinc-200 dark:bg-zinc-900/50 bg-zinc-100/50 flex justify-end">
                   <button 
                     onClick={() => setShowHelp(false)} 
-                    className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all text-base uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-slate-900"
+                    className="px-5 py-2 bg-black hover:bg-zinc-800 text-white dark:bg-white dark:hover:bg-zinc-200 dark:text-black rounded-lg font-bold transition-all text-xs uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
                   >
                     Entendido
                   </button>
@@ -958,26 +978,51 @@ const App: React.FC = () => {
         {step === AppStep.UPLOAD && (
             <div className="max-w-2xl mx-auto pt-8 md:pt-12 px-4 pb-20">
                 <FileUpload onFileLoaded={handleFileLoaded} />
-                <div className="mt-8 text-center dark:text-gray-500 text-gray-500 text-base max-w-lg mx-auto leading-relaxed">
+                <div className="mt-8 text-center dark:text-gray-500 text-gray-500 text-sm max-w-lg mx-auto leading-relaxed">
                     Carregue um arquivo .otf ou .ttf. O sistema gerará automaticamente uma cópia limpa (métricas zeradas) e uma cópia de referência Original para comparação rítmica.
                 </div>
             </div>
         )}
 
         {step === AppStep.PREPARATION && (
-            <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 h-full lg:overflow-hidden relative px-1 pb-10 lg:pb-0">
-                {/* Mobile View Switcher - Improved visibility */}
-                <div className="lg:hidden flex sticky top-0 z-[60] dark:bg-slate-950/80 bg-slate-50/80 backdrop-blur-md border-b dark:border-slate-800 border-slate-200 p-2 mb-2 -mx-1">
+            <div className="flex flex-col flex-1 w-full min-w-0">
+                {/* Preparation Header matching Analysis Header button position */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2 shrink-0">
+                    <h2 className="text-xl md:text-2xl font-black dark:text-white text-zinc-950 flex items-center gap-2 uppercase tracking-tighter">
+                        <Settings2 className="w-6 h-6 dark:text-white text-black" />
+                        Ajuste e Métricas
+                    </h2>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <button 
+                            onClick={() => setStep(AppStep.UPLOAD)}
+                            className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border dark:border-zinc-800 border-zinc-300 dark:hover:bg-zinc-800/50 hover:bg-zinc-200/50 transition-all dark:text-zinc-400 text-zinc-600 font-bold text-xs uppercase tracking-wider dark:hover:text-white hover:text-black focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white cursor-pointer"
+                            title="Trocar Arquivo Fonte"
+                        >
+                            Trocar Fonte
+                        </button>
+                        <button 
+                            onClick={handleProcess}
+                            className="flex-1 sm:flex-initial flex items-center justify-center gap-2.5 px-6 py-3 rounded-lg bg-black hover:bg-zinc-800 text-white dark:bg-white dark:hover:bg-zinc-200 dark:text-black font-bold shadow-lg w-full sm:w-auto transform active:scale-[0.99] transition-all uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white text-xs cursor-pointer"
+                        >
+                            Processar e Validar Fontes
+                            <ArrowRight className="w-4 h-4 dark:text-black text-white" />
+                        </button>
+                    </div>
+                </div>
+
+                <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 h-full lg:overflow-hidden relative px-1 pb-10 lg:pb-0">
+                {/* Mobile View Switcher */}
+                <div className="lg:hidden flex sticky top-0 z-[60] dark:bg-zinc-950/90 bg-white/90 backdrop-blur-md border-b dark:border-zinc-800 border-zinc-200 p-2 mb-2 -mx-1 gap-2">
                     <button 
                         onClick={() => setPrepMobileView('TUNER')}
-                        className={`flex-1 py-3 px-4 rounded-xl text-base font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${prepMobileView === 'TUNER' ? 'bg-blue-600 dark:text-white text-slate-900 shadow-lg shadow-blue-500/30' : 'dark:text-slate-500 text-slate-500 dark:hover:text-slate-300 hover:text-slate-700'}`}
+                        className={`flex-1 py-2.5 px-4 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white ${prepMobileView === 'TUNER' ? 'bg-black text-white dark:bg-white dark:text-black shadow-sm' : 'dark:text-zinc-400 text-zinc-600 dark:hover:text-white hover:text-black'}`}
                         aria-pressed={prepMobileView === 'TUNER'}
                     >
                         <RefreshCcw className="w-4 h-4" /> Ajustes
                     </button>
                     <button 
                         onClick={() => setPrepMobileView('TUTORIAL')}
-                        className={`flex-1 py-3 px-4 rounded-xl text-base font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${prepMobileView === 'TUTORIAL' ? 'bg-indigo-600 dark:text-white text-slate-900 shadow-lg shadow-indigo-500/30' : 'dark:text-slate-500 text-slate-500 dark:hover:text-slate-300 hover:text-slate-700'}`}
+                        className={`flex-1 py-2.5 px-4 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white ${prepMobileView === 'TUTORIAL' ? 'bg-black text-white dark:bg-white dark:text-black shadow-sm' : 'dark:text-zinc-400 text-zinc-600 dark:hover:text-white hover:text-black'}`}
                         aria-pressed={prepMobileView === 'TUTORIAL'}
                     >
                         <Target className="w-4 h-4" /> Tutorial
@@ -991,52 +1036,52 @@ const App: React.FC = () => {
                         animate={{ opacity: 1, x: 0 }}
                         className="lg:col-span-8 flex-1 min-h-0 lg:h-full flex flex-col order-1 overflow-y-auto lg:overflow-hidden custom-scrollbar min-w-0"
                     >
-                        <div className="flex gap-2 mb-4 dark:bg-slate-900/90 bg-slate-100/90 backdrop-blur p-2 rounded-2xl border dark:border-slate-800 border-slate-200 w-[calc(100vw-1rem)] sm:w-full lg:w-fit self-center lg:self-start z-20 shadow-2xl overflow-x-auto custom-scrollbar max-w-full">
+                        <div className="flex gap-2 mb-4 dark:bg-zinc-900/90 bg-zinc-100/90 backdrop-blur p-1.5 rounded-lg border dark:border-zinc-800 border-zinc-300 w-[calc(100vw-1rem)] sm:w-full lg:w-fit self-center lg:self-start z-20 shadow-sm overflow-x-auto custom-scrollbar max-w-full">
                             <button 
                             onClick={() => setTuningTab('ORIGINAL')}
-                            className={`flex-1 sm:flex-none px-6 py-3 rounded-xl text-base font-black uppercase tracking-widest transition-all focus:outline-none focus:ring-2 focus:ring-slate-500 relative flex items-center gap-2 whitespace-nowrap ${tuningTab === 'ORIGINAL' ? 'bg-slate-600 text-white shadow-lg shadow-slate-600/40' : 'dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                            className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-xs font-black uppercase tracking-wider transition-all focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white relative flex items-center gap-2 whitespace-nowrap ${tuningTab === 'ORIGINAL' ? 'bg-black text-white dark:bg-white dark:text-black shadow-sm' : 'dark:text-zinc-400 text-zinc-600 dark:hover:text-white hover:text-black hover:bg-black/5 dark:hover:bg-white/5'}`}
                             style={{ minWidth: 'max-content' }}
                             role="tab"
                             aria-selected={tuningTab === 'ORIGINAL'}
                         >
-                            {tuningTab === 'ORIGINAL' && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                            {tuningTab === 'ORIGINAL' && <div className="w-1.5 h-1.5 rounded-full dark:bg-black bg-white animate-pulse" />}
                             Fonte Original
                         </button>
                         <button 
                             onClick={() => setTuningTab('ORIGINAL_CUSTOM')}
-                            className={`flex-1 sm:flex-none px-6 py-3 rounded-xl text-base font-black uppercase tracking-widest transition-all focus:outline-none focus:ring-2 focus:ring-slate-500 relative flex items-center gap-2 whitespace-nowrap ${tuningTab === 'ORIGINAL_CUSTOM' ? 'bg-slate-600 text-white shadow-lg shadow-slate-600/40' : 'dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                            className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-xs font-black uppercase tracking-wider transition-all focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white relative flex items-center gap-2 whitespace-nowrap ${tuningTab === 'ORIGINAL_CUSTOM' ? 'bg-black text-white dark:bg-white dark:text-black shadow-sm' : 'dark:text-zinc-400 text-zinc-600 dark:hover:text-white hover:text-black hover:bg-black/5 dark:hover:bg-white/5'}`}
                             style={{ minWidth: 'max-content' }}
                             role="tab"
                             aria-selected={tuningTab === 'ORIGINAL_CUSTOM'}
                         >
-                            {tuningTab === 'ORIGINAL_CUSTOM' && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                            {tuningTab === 'ORIGINAL_CUSTOM' && <div className="w-1.5 h-1.5 rounded-full dark:bg-black bg-white animate-pulse" />}
                             Ajuste Manual
                         </button>
                         <button 
                             onClick={() => setTuningTab('TRACY')}
-                            className={`flex-1 sm:flex-none px-6 py-3 rounded-xl text-base font-black uppercase tracking-widest transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 relative flex items-center gap-2 whitespace-nowrap ${tuningTab === 'TRACY' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/40' : 'dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                            className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-xs font-black uppercase tracking-wider transition-all focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white relative flex items-center gap-2 whitespace-nowrap ${tuningTab === 'TRACY' ? 'bg-black text-white dark:bg-white dark:text-black shadow-sm' : 'dark:text-zinc-400 text-zinc-600 dark:hover:text-white hover:text-black hover:bg-black/5 dark:hover:bg-white/5'}`}
                             style={{ minWidth: 'max-content' }}
                             role="tab"
                             aria-selected={tuningTab === 'TRACY'}
                         >
-                            {tuningTab === 'TRACY' && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                            {tuningTab === 'TRACY' && <div className="w-1.5 h-1.5 rounded-full dark:bg-black bg-white animate-pulse" />}
                             Método Tracy
                         </button>
                         <button 
                             onClick={() => setTuningTab('SOUSA')}
-                            className={`flex-1 sm:flex-none px-6 py-3 rounded-xl text-base font-black uppercase tracking-widest transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 relative flex items-center gap-2 whitespace-nowrap ${tuningTab === 'SOUSA' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/40' : 'dark:text-slate-400 text-slate-600 dark:hover:text-white hover:text-slate-900 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                            className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-xs font-black uppercase tracking-wider transition-all focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white relative flex items-center gap-2 whitespace-nowrap ${tuningTab === 'SOUSA' ? 'bg-black text-white dark:bg-white dark:text-black shadow-sm' : 'dark:text-zinc-400 text-zinc-600 dark:hover:text-white hover:text-black hover:bg-black/5 dark:hover:bg-white/5'}`}
                             style={{ minWidth: 'max-content' }}
                             role="tab"
                             aria-selected={tuningTab === 'SOUSA'}
                         >
-                            {tuningTab === 'SOUSA' && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                            {tuningTab === 'SOUSA' && <div className="w-1.5 h-1.5 rounded-full dark:bg-black bg-white animate-pulse" />}
                             Método Sousa
                         </button>
                     </div>
 
-                    <div className={`flex-1 min-h-0 dark:bg-slate-900/30 bg-slate-100/30 rounded-2xl border transition-all duration-500 ${tuningTab === 'TRACY' ? 'border-blue-500/30 shadow-[0_0_40px_rgba(59,130,246,0.05)]' : tuningTab === 'SOUSA' ? 'border-indigo-500/30 shadow-[0_0_40px_rgba(99,102,241,0.05)]' : 'border-slate-500/30 shadow-[0_0_40px_rgba(100,116,139,0.05)]'} shadow-inner overflow-hidden flex flex-col relative`}>
+                    <div className="flex-1 min-h-0 dark:bg-zinc-900/40 bg-zinc-100/50 rounded-xl border dark:border-zinc-800 border-zinc-300 shadow-inner overflow-hidden flex flex-col relative">
                         {liveUpdateStatus && (
-                            <div className={`absolute top-4 right-4 z-50 ${tuningTab === 'TRACY' ? 'bg-blue-600/90' : tuningTab === 'SOUSA' ? 'bg-indigo-600/90' : 'bg-slate-600/90'} text-white text-xs uppercase font-bold tracking-widest px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg backdrop-blur-md animate-pulse`}>
+                            <div className="absolute top-4 right-4 z-50 bg-black dark:bg-white text-white dark:text-black text-xs uppercase font-bold tracking-widest px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg backdrop-blur-md animate-pulse">
                                 <Loader2 className="w-3 h-3 animate-spin mx-auto" />
                                 {liveUpdateStatus}
                             </div>
@@ -1053,7 +1098,7 @@ const App: React.FC = () => {
                                 />
                             ) : tuningTab === 'SOUSA' ? (
                                 <SousaTuner 
-                                    settings={sousaSettings}
+                                    settings={sousaSettings} 
                                     onSettingsChange={setSousaSettings}
                                     fontFamily={fonts[MethodType.SOUSA]?.fullFontFamily || 'sans-serif'}
                                     font={fonts[MethodType.SOUSA]}
@@ -1081,17 +1126,17 @@ const App: React.FC = () => {
                         </div>
                         
                         {/* Mobile Action buttons in Tuner Panel */}
-                        <div className="lg:hidden p-4 dark:bg-slate-900/90 bg-slate-100/90 backdrop-blur-md border-t dark:border-slate-800 border-slate-200">
-                             <div className="flex flex-col gap-3 w-full">
+                        <div className="lg:hidden p-4 dark:bg-zinc-900/90 bg-zinc-100/90 backdrop-blur-md border-t dark:border-zinc-800 border-zinc-200">
+                             <div className="flex flex-col gap-2.5 w-full">
                                 <button 
                                     onClick={handleProcess}
-                                    className="px-10 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-2xl flex items-center justify-center gap-3 w-full transform hover:scale-[1.02] active:scale-[0.98] transition-all text-base uppercase tracking-tighter shadow-blue-600/30 focus:outline-none focus:ring-4 focus:ring-blue-500/50"
+                                    className="px-6 py-3.5 rounded-lg bg-black hover:bg-zinc-800 text-white dark:bg-white dark:hover:bg-zinc-200 dark:text-black font-bold shadow-lg flex items-center justify-center gap-2.5 w-full transform active:scale-[0.99] transition-all text-xs uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
                                 >
-                                    Processar e Visualizar Manchas de Texto <ArrowRight className="w-5 h-5" />
+                                    Processar e Visualizar Resultados <ArrowRight className="w-4 h-4" />
                                 </button>
                                 <button 
                                     onClick={() => setStep(AppStep.UPLOAD)}
-                                    className="px-8 py-3 rounded-2xl border dark:border-slate-800 border-slate-200 dark:hover:bg-slate-800/50 hover:bg-slate-200/50 transition-all dark:text-slate-500 text-slate-500 font-bold text-xs uppercase tracking-widest dark:hover:text-slate-300 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-700"
+                                    className="px-6 py-2.5 rounded-lg border dark:border-zinc-800 border-zinc-300 dark:hover:bg-zinc-800/50 hover:bg-zinc-200/50 transition-all dark:text-zinc-400 text-zinc-600 font-bold text-xs uppercase tracking-wider dark:hover:text-white hover:text-black focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
                                 >
                                     Trocar Arquivo
                                 </button>
@@ -1108,22 +1153,21 @@ const App: React.FC = () => {
                         animate={{ opacity: 1, x: 0 }}
                         className="lg:col-span-4 flex-1 min-h-0 lg:h-full order-2 lg:overflow-hidden flex flex-col min-w-0"
                     >
-                        <div className="dark:bg-slate-900/60 bg-slate-100/60 backdrop-blur-sm flex-1 rounded-3xl border dark:border-slate-800 border-slate-200 flex flex-col overflow-hidden shadow-2xl relative group min-h-0">
-                        <div className="absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                        <div className="dark:bg-zinc-900/60 bg-zinc-100/60 backdrop-blur-sm flex-1 rounded-xl border dark:border-zinc-800 border-zinc-300 flex flex-col overflow-hidden shadow-lg relative group min-h-0">
                         
-                        <div className="flex-1 overflow-y-auto custom-scrollbar pt-6 px-6 md:px-8">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar pt-5 px-5 md:px-6">
                             <div className="flex flex-col items-center">
-                                {/* Refined compact font info - Hidden on small screens to maximize adjustment space */}
-                                <div className="hidden lg:flex items-center gap-3 dark:bg-slate-950/40 bg-slate-50/40 p-3 rounded-xl mb-4 border dark:border-slate-800/30 border-slate-200/30 w-full group/info">
-                                    <div className="dark:bg-slate-950 bg-slate-50 p-2 rounded-lg shadow-inner border dark:border-slate-800/50 border-slate-200/50 group-hover/info:border-blue-500/30 transition-colors">
-                                        <Type className="w-5 h-5 text-blue-500/80" />
+                                {/* Refined compact font info */}
+                                <div className="hidden lg:flex items-center gap-3 dark:bg-zinc-950/40 bg-zinc-50/60 p-3 rounded-lg mb-4 border dark:border-zinc-800 border-zinc-200 w-full">
+                                    <div className="dark:bg-zinc-950 bg-zinc-50 p-2 rounded-md shadow-inner border dark:border-zinc-800 border-zinc-300">
+                                        <Type className="w-4 h-4 dark:text-white text-black" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-1.5 mb-0.5">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-sm" />
-                                            <h4 className="text-[11px] font-black dark:text-slate-500 text-slate-500 uppercase tracking-[0.2em]">{fontName}</h4>
+                                            <span className="w-1.5 h-1.5 rounded-full dark:bg-white bg-black shadow-sm" />
+                                            <h4 className="text-[10px] font-black dark:text-zinc-400 text-zinc-600 uppercase tracking-[0.2em]">{fontName}</h4>
                                         </div>
-                                        <h3 className="text-sm font-bold dark:text-slate-300 text-slate-700 truncate tracking-tight">Análise Ativa</h3>
+                                        <h3 className="text-xs font-bold dark:text-white text-zinc-900 truncate tracking-tight">Análise Ativa</h3>
                                     </div>
                                 </div>
                                 
@@ -1131,49 +1175,49 @@ const App: React.FC = () => {
                                     <MethodVisualizer method={tuningTab} font={fonts[tuningTab as MethodType.TRACY | MethodType.SOUSA]} />
                                 </div>
 
-                                <div className="hidden lg:block dark:bg-slate-950/40 bg-slate-50/40 rounded-2xl p-6 border dark:border-slate-800/60 border-slate-200/60 my-8 text-left group-hover:border-blue-500/30 transition-colors w-full">
-                                    <h4 className="text-xs font-black text-blue-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                <div className="hidden lg:block dark:bg-zinc-950/40 bg-zinc-50/60 rounded-lg p-5 border dark:border-zinc-800 border-zinc-300 my-6 text-left w-full">
+                                    <h4 className="text-xs font-black dark:text-white text-black uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
                                         <Target className="w-3.5 h-3.5" />
                                         Fundamentos Teóricos
                                     </h4>
-                                    <div className="dark:text-slate-300 text-slate-700 text-sm md:text-base leading-relaxed font-medium">
+                                    <div className="dark:text-zinc-300 text-zinc-700 text-xs md:text-sm leading-relaxed font-medium">
                                         {tuningTab === 'TRACY' ? (
-                                            <div className="space-y-4">
+                                            <div className="space-y-3">
                                                 <p>
-                                                    Walter Tracy propõe que o <span className="dark:text-white text-slate-900 font-bold"> ritmo tipográfico</span> é uma relação direta entre o espaço interno e as margens externas.
+                                                    Walter Tracy propõe que o <span className="dark:text-white text-zinc-950 font-bold"> ritmo tipográfico</span> é uma relação direta entre o espaço interno e as margens externas.
                                                 </p>
-                                                <div className="dark:bg-slate-900/50 bg-slate-100/50 p-4 rounded-xl border dark:border-slate-800 border-slate-200 space-y-2">
+                                                <div className="dark:bg-zinc-900/50 bg-zinc-100/50 p-3.5 rounded-md border dark:border-zinc-800 border-zinc-200 space-y-1.5">
                                                     <div className="flex justify-between items-center">
-                                                        <span className="text-blue-400 font-black text-[11px] uppercase tracking-wider">Haste Reta</span>
-                                                        <span className="dark:text-slate-500 text-slate-500 text-[10px] font-mono">FIXO</span>
+                                                        <span className="dark:text-white text-black font-black text-[11px] uppercase tracking-wider">Haste Reta</span>
+                                                        <span className="dark:text-zinc-500 text-zinc-500 text-[10px] font-mono">FIXO</span>
                                                     </div>
-                                                    <p className="text-xs dark:text-slate-400 text-slate-600 leading-tight">Glifos como H e n recebem a carga metrológica primária, servindo como modelo para o resto da fonte.</p>
+                                                    <p className="text-xs dark:text-zinc-400 text-zinc-600 leading-tight">Glifos como H e n recebem a carga metrológica primária, servindo como modelo para o resto da fonte.</p>
                                                 </div>
                                             </div>
                                         ) : tuningTab === 'SOUSA' ? (
-                                            <div className="space-y-4">
+                                            <div className="space-y-3">
                                                 <p>
-                                                    O método de Miguel Sousa organiza o espaçamento em <span className="dark:text-white text-slate-900 font-bold">três grandes grupos</span> baseados na semelhança de forma e relações de herança entre os glifos.
+                                                    O método de Miguel Sousa organiza o espaçamento em <span className="dark:text-white text-zinc-950 font-bold">três grandes grupos</span> baseados na semelhança de forma e relações de herança entre os glifos.
                                                 </p>
-                                                <div className="dark:bg-slate-900/50 bg-slate-100/50 p-4 rounded-xl border dark:border-slate-800 border-slate-200 space-y-2">
+                                                <div className="dark:bg-zinc-900/50 bg-zinc-100/50 p-3.5 rounded-md border dark:border-zinc-800 border-zinc-200 space-y-1.5">
                                                     <div className="flex justify-between items-center">
-                                                        <span className="text-indigo-400 font-black text-[11px] uppercase tracking-wider">Semelhança de Forma</span>
-                                                        <span className="dark:text-slate-500 text-slate-500 text-[10px] font-mono">REFERÊNCIA</span>
+                                                        <span className="dark:text-white text-black font-black text-[11px] uppercase tracking-wider">Semelhança de Forma</span>
+                                                        <span className="dark:text-zinc-500 text-zinc-500 text-[10px] font-mono">REFERÊNCIA</span>
                                                     </div>
-                                                    <p className="text-xs dark:text-slate-400 text-slate-600 leading-tight">O sistema utiliza relações onde hastes herdam de 'l' e curvas de 'o', permitindo ajustes visuais precisos onde a geometria falha.</p>
+                                                    <p className="text-xs dark:text-zinc-400 text-zinc-600 leading-tight">O sistema utiliza relações onde hastes herdam de 'l' e curvas de 'o', permitindo ajustes visuais precisos onde a geometria falha.</p>
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="space-y-4">
+                                            <div className="space-y-3">
                                                 <p>
-                                                    A <span className="dark:text-white text-slate-900 font-bold">métrica original</span> representa o desenho pretendido pelo autor. Analisar esses valores é essencial para entender as decisões estéticas iniciais.
+                                                    A <span className="dark:text-white text-zinc-950 font-bold">métrica original</span> representa o desenho pretendido pelo autor. Analisar esses valores é essencial para entender as decisões estéticas iniciais.
                                                 </p>
-                                                <div className="dark:bg-slate-900/50 bg-slate-100/50 p-4 rounded-xl border dark:border-slate-800 border-slate-200 space-y-2">
+                                                <div className="dark:bg-zinc-900/50 bg-zinc-100/50 p-3.5 rounded-md border dark:border-zinc-800 border-zinc-200 space-y-1.5">
                                                     <div className="flex justify-between items-center">
-                                                        <span className="dark:text-slate-400 text-slate-600 font-black text-[11px] uppercase tracking-wider">Métrica de Fábrica</span>
-                                                        <span className="dark:text-slate-500 text-slate-500 text-[10px] font-mono">BASELINE</span>
+                                                        <span className="dark:text-zinc-300 text-zinc-700 font-black text-[11px] uppercase tracking-wider">Métrica de Fábrica</span>
+                                                        <span className="dark:text-zinc-500 text-zinc-500 text-[10px] font-mono">BASELINE</span>
                                                     </div>
-                                                    <p className="text-xs dark:text-slate-400 text-slate-600 leading-tight">Observe como o designer original equilibrou as massas pretas e brancas antes de aplicar métodos sistemáticos.</p>
+                                                    <p className="text-xs dark:text-zinc-400 text-zinc-600 leading-tight">Observe como o designer original equilibrou as massas pretas e brancas antes de aplicar métodos sistemáticos.</p>
                                                 </div>
                                             </div>
                                         )}
@@ -1183,17 +1227,17 @@ const App: React.FC = () => {
                         </div>
 
                         {/* Sticky Action Footer in Info Panel */}
-                        <div className="p-6 dark:bg-slate-900/90 bg-slate-100/90 backdrop-blur-md border-t dark:border-slate-800 border-slate-200 mt-auto">
-                            <div className="flex flex-col gap-3 w-full">
+                        <div className="p-5 dark:bg-zinc-900/90 bg-zinc-100/90 backdrop-blur-md border-t dark:border-zinc-800 border-zinc-200 mt-auto">
+                            <div className="flex flex-col gap-2.5 w-full">
                                 <button 
                                     onClick={handleProcess}
-                                    className="px-10 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-2xl flex items-center justify-center gap-3 w-full transform hover:scale-[1.02] active:scale-[0.98] transition-all text-base uppercase tracking-tighter shadow-blue-600/30 focus:outline-none focus:ring-4 focus:ring-blue-500/50"
+                                    className="px-6 py-3.5 rounded-lg bg-black hover:bg-zinc-800 text-white dark:bg-white dark:hover:bg-zinc-200 dark:text-black font-bold shadow-lg flex items-center justify-center gap-2.5 w-full transform active:scale-[0.99] transition-all text-xs uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
                                 >
-                                    Processar e Visualizar Manchas de Texto <ArrowRight className="w-5 h-5" />
+                                    Processar e Visualizar Resultados <ArrowRight className="w-4 h-4" />
                                 </button>
                                 <button 
                                     onClick={() => setStep(AppStep.UPLOAD)}
-                                    className="px-8 py-3 rounded-2xl border dark:border-slate-800 border-slate-200 dark:hover:bg-slate-800/50 hover:bg-slate-200/50 transition-all dark:text-slate-500 text-slate-500 font-bold text-xs uppercase tracking-widest dark:hover:text-slate-300 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-700"
+                                    className="px-6 py-2.5 rounded-lg border dark:border-zinc-800 border-zinc-300 dark:hover:bg-zinc-800/50 hover:bg-zinc-200/50 transition-all dark:text-zinc-400 text-zinc-600 font-bold text-xs uppercase tracking-wider dark:hover:text-white hover:text-black focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
                                 >
                                     Trocar Arquivo Fonte
                                 </button>
@@ -1202,25 +1246,26 @@ const App: React.FC = () => {
                     </div>
                 </motion.div>
                 )}
+                </div>
             </div>
         )}
 
         {step === AppStep.ANALYSIS && (
-            <div className="flex-1 flex flex-col min-h-[800px] w-full">
+            <div className="flex-1 flex flex-col w-full min-h-[750px] pb-12">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2 shrink-0">
-                    <h2 className="text-xl md:text-2xl font-black dark:text-white text-slate-900 flex items-center gap-2 uppercase tracking-tighter">
-                        <MousePointerClick className="w-6 h-6 text-blue-500" />
+                    <h2 className="text-xl md:text-2xl font-black dark:text-white text-zinc-950 flex items-center gap-2 uppercase tracking-tighter">
+                        <MousePointerClick className="w-6 h-6 dark:text-white text-black" />
                         Análise Comparativa
                     </h2>
                     <button 
                         onClick={() => setStep(AppStep.PREPARATION)}
-                        className="flex items-center justify-center gap-3 px-10 py-5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-2xl w-full sm:w-auto transform hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-tighter shadow-blue-600/30 focus:outline-none focus:ring-4 focus:ring-blue-500/50 text-sm"
+                        className="flex items-center justify-center gap-2.5 px-6 py-3 rounded-lg bg-black hover:bg-zinc-800 text-white dark:bg-white dark:hover:bg-zinc-200 dark:text-black font-bold shadow-lg w-full sm:w-auto transform active:scale-[0.99] transition-all uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white text-xs cursor-pointer"
                     >
-                        <Settings2 className="w-4 h-4 transition-all duration-500 text-white" /> 
+                        <Settings2 className="w-4 h-4 dark:text-black text-white" /> 
                         Retornar aos ajustes
                     </button>
                 </div>
-                <div className="flex-1 flex flex-col min-h-0 min-w-0">
+                <div className="flex-1 flex flex-col w-full min-h-[650px] min-w-0">
                     <AnalysisCanvas 
                       fonts={fonts} 
                       onUpdateGlyph={handleUpdateIndividualGlyph} 

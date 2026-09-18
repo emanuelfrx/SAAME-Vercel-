@@ -56,14 +56,14 @@ const MetricExplanationPanel: React.FC<MetricExplanationPanelProps> = ({ char, f
     }
 
     return (
-        <div className="bg-slate-100/80 dark:bg-slate-950/40 border border-slate-200 dark:border-white/10 p-4 rounded-xl mt-4 text-left">
+        <div className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-xl mt-4 text-left">
             <div className="flex items-center gap-5 justify-center mb-3">
                 <div className="flex flex-col items-center">
-                    <div className="bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-black px-1.5 py-0.5 rounded uppercase tracking-[0.2em] mb-1">Standard</div>
-                    <span className="text-xl font-black dark:text-white text-slate-950 leading-none">{char}</span>
+                    <div className="bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-[10px] font-black px-1.5 py-0.5 rounded uppercase tracking-[0.2em] mb-1">Standard</div>
+                    <span className="text-xl font-black dark:text-white text-zinc-950 leading-none">{char}</span>
                 </div>
             </div>
-            <p className="text-xs dark:text-slate-400 text-slate-800 font-medium italic border-t border-slate-200 dark:border-white/5 pt-2 leading-relaxed text-center">
+            <p className="text-xs dark:text-zinc-400 text-zinc-700 font-medium italic border-t border-zinc-200 dark:border-zinc-800 pt-2 leading-relaxed text-center">
                 {getExplanation()}
             </p>
         </div>
@@ -181,16 +181,16 @@ const TunerBlock: React.FC<TunerBlockProps> = React.memo(({ char, title, testWor
   };
 
     return (
-        <div className="dark:bg-slate-900/40 bg-slate-100/40 p-3 md:p-5 rounded-2xl border-l-4 border-blue-500/50 border dark:border-slate-800 border-slate-200 shadow-lg transition-transform hover:translate-x-1">                
+        <div className="dark:bg-zinc-900/40 bg-zinc-100/60 p-3 md:p-5 rounded-2xl border-l-4 border-black dark:border-white border dark:border-zinc-800 border-zinc-200 shadow-sm transition-transform hover:translate-x-1">                
             <div className="flex justify-between items-center mb-3 md:mb-6">
                 <div className="flex flex-col">
-                    <h3 className="font-black text-blue-400 text-xs md:text-sm uppercase tracking-[0.2em]">{title}</h3>
-                    <div className="h-0.5 w-8 bg-blue-500/30 mt-1 rounded-full" />
+                    <h3 className="font-black text-zinc-950 dark:text-white text-xs md:text-sm uppercase tracking-[0.2em]">{title}</h3>
+                    <div className="h-0.5 w-8 bg-zinc-400 dark:bg-zinc-600 mt-1 rounded-full" />
                 </div>
                          {onAuto && (
                              <button 
                                 onClick={() => onAuto(char as string)} 
-                                className="text-xs font-bold uppercase tracking-widest bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-blue-500/20 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="text-xs font-bold uppercase tracking-widest bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-zinc-300 dark:border-zinc-700 transition-all focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
                                 title="Harmonizar com base no peso e forma"
                                 aria-label={`Harmonizar ${title} automaticamente`}
                              >
@@ -206,7 +206,7 @@ const TunerBlock: React.FC<TunerBlockProps> = React.memo(({ char, title, testWor
                             /* Symmetrical Control (Standard H) */
                             <div>
                                 <div className="flex justify-between items-center mb-1">
-                                    <label className="text-sm text-blue-400 font-bold">
+                                    <label className="text-sm dark:text-white text-zinc-950 font-bold">
                                         Side Bearings (x/2)
                                         <TheoreticalTooltip content="Segundo Walter Tracy, para glifos retos (como o 'H'), os side bearings ideais (SB) são definidos como a metade da largura da contraforma interna (x). Assim, SB = x / 2." />
                                     </label>
@@ -214,24 +214,24 @@ const TunerBlock: React.FC<TunerBlockProps> = React.memo(({ char, title, testWor
                                         type="number"
                                         value={currentLsb}
                                         onChange={(e) => onUpdate(char, 'both', Number(e.target.value))}
-                                        className="w-24 dark:bg-gray-900 bg-white border dark:border-slate-700 border-slate-300 rounded px-2 py-1 h-10 text-right text-xl font-bold text-blue-600 dark:text-blue-400 focus:border-blue-500 outline-none focus:ring-1 focus:ring-blue-500"
+                                        className="w-24 dark:bg-zinc-900 bg-white border dark:border-zinc-700 border-zinc-300 rounded px-2 py-1 h-10 text-right text-xl font-bold text-zinc-950 dark:text-white focus:border-black dark:focus:border-white outline-none focus:ring-1 focus:ring-black dark:focus:ring-white"
                                         aria-label={`Valor numérico para Side bearings ${title}`}
                                     />
                                 </div>
                                 <input 
                                     type="range" min="-50" max="300" value={currentLsb} 
                                     onChange={(e) => onUpdate(char, 'both', Number(e.target.value))}
-                                    className="w-full accent-blue-500 h-1.5 dark:bg-gray-700 bg-gray-300 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                                    className="w-full accent-black dark:accent-white h-1.5 dark:bg-zinc-800 bg-zinc-300 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:ring-offset-2 focus:ring-offset-zinc-900"
                                     aria-label={`Slider para Side bearings ${title}`}
                                 />
-                                <p className="text-[11px] dark:text-slate-400 text-slate-600 mt-2 italic">Ajuste baseado na contraforma (x): SB ideal = x/2 em ambos os lados.</p>
+                                <p className="text-[11px] dark:text-zinc-400 text-zinc-600 mt-2 italic">Ajuste baseado na contraforma (x): SB ideal = x/2 em ambos os lados.</p>
                             </div>
                         ) : (
                             <>
                                 {/* LSB Control */}
                                 <div>
                                     <div className="flex justify-between items-center mb-1">
-                                        <label className="text-sm text-blue-400 font-bold">
+                                        <label className="text-sm dark:text-white text-zinc-950 font-bold">
                                             Lado da Haste (x/2)
                                             <TheoreticalTooltip content="No 'n', o lado esquerdo (haste reta) herda a lógica do 'H'. O espaço ideal é a metade da largura interna entre as hastes (x/2)." />
                                         </label>
@@ -239,14 +239,14 @@ const TunerBlock: React.FC<TunerBlockProps> = React.memo(({ char, title, testWor
                                             type="number"
                                             value={currentLsb}
                                             onChange={(e) => onUpdate(char, 'lsb', Number(e.target.value))}
-                                            className="w-24 dark:bg-gray-900 bg-white border dark:border-slate-700 border-slate-300 rounded px-2 py-1 h-10 text-right text-xl font-bold text-blue-600 dark:text-blue-400 focus:border-blue-500 outline-none focus:ring-1 focus:ring-blue-500"
+                                            className="w-24 dark:bg-zinc-900 bg-white border dark:border-zinc-700 border-zinc-300 rounded px-2 py-1 h-10 text-right text-xl font-bold text-zinc-950 dark:text-white focus:border-black dark:focus:border-white outline-none focus:ring-1 focus:ring-black dark:focus:ring-white"
                                             aria-label={`Valor numérico para Side Bearing Esquerdo ${title}`}
                                         />
                                     </div>
                                     <input 
                                         type="range" min="-50" max="300" value={currentLsb} 
                                         onChange={(e) => onUpdate(char, 'lsb', Number(e.target.value))}
-                                        className="w-full accent-blue-500 h-1.5 dark:bg-gray-700 bg-gray-300 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                                        className="w-full accent-black dark:accent-white h-1.5 dark:bg-zinc-800 bg-zinc-300 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:ring-offset-2 focus:ring-offset-zinc-900"
                                         aria-label={`Slider para Side Bearing Esquerdo ${title}`}
                                     />
                                 </div>
@@ -254,7 +254,7 @@ const TunerBlock: React.FC<TunerBlockProps> = React.memo(({ char, title, testWor
                                 {/* RSB Control */}
                                 <div>
                                     <div className="flex justify-between items-center mb-1">
-                                        <label className="text-sm text-green-400 font-bold">
+                                        <label className="text-sm dark:text-white text-zinc-950 font-bold">
                                             Lado do Arco (&lt; x/2)
                                             <TheoreticalTooltip content="O lado do arco (direito) recebe um pouco menos de espaço que o lado da haste (geralmente 90% de x/2) devido à sua forma arredondada que 'projeta' mais branco para fora." />
                                         </label>
@@ -262,24 +262,24 @@ const TunerBlock: React.FC<TunerBlockProps> = React.memo(({ char, title, testWor
                                             type="number"
                                             value={currentRsb}
                                             onChange={(e) => onUpdate(char, 'rsb', Number(e.target.value))}
-                                            className="w-24 dark:bg-gray-900 bg-white border dark:border-slate-700 border-slate-300 rounded px-2 py-1 h-10 text-right text-xl font-bold text-green-600 dark:text-green-400 focus:border-green-500 outline-none focus:ring-1 focus:ring-green-500"
+                                            className="w-24 dark:bg-zinc-900 bg-white border dark:border-zinc-700 border-zinc-300 rounded px-2 py-1 h-10 text-right text-xl font-bold text-zinc-950 dark:text-white focus:border-black dark:focus:border-white outline-none focus:ring-1 focus:ring-black dark:focus:ring-white"
                                             aria-label={`Valor numérico para Side Bearing Direito ${title}`}
                                         />
                                     </div>
                                     <input 
                                         type="range" min="-50" max="300" value={currentRsb} 
                                         onChange={(e) => onUpdate(char, 'rsb', Number(e.target.value))}
-                                        className="w-full accent-green-500 h-1.5 dark:bg-gray-700 bg-gray-300 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                                        className="w-full accent-black dark:accent-white h-1.5 dark:bg-zinc-800 bg-zinc-300 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:ring-offset-2 focus:ring-offset-zinc-900"
                                         aria-label={`Slider para Side Bearing Direito ${title}`}
                                     />
-                                    <p className="text-[11px] dark:text-slate-400 text-slate-600 mt-2 italic">À direita, o espaço é ligeiramente reduzido para compensar a curvatura do arco.</p>
+                                    <p className="text-[11px] dark:text-zinc-400 text-zinc-600 mt-2 italic">À direita, o espaço é ligeiramente reduzido para compensar a curvatura do arco.</p>
                                 </div>
                             </>
                         )}
                     </div>
                 
                 {/* Text Preview (Live) editable */}
-                <div className="bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 shadow-md shadow-slate-100/80 dark:shadow-[0_10px_30px_rgba(0,0,0,0.6)] rounded-2xl p-4 md:p-5 mt-2 flex flex-col justify-center min-h-[110px] shrink-0 max-h-[300px] overflow-y-auto custom-scrollbar">
+                <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-sm rounded-2xl p-4 md:p-5 mt-2 flex flex-col justify-center min-h-[110px] shrink-0 max-h-[300px] overflow-y-auto custom-scrollbar">
                     {isEditing ? (
                         <div className="flex flex-col items-center justify-center w-full py-2" onClick={(e) => e.stopPropagation()}>
                             <input 
@@ -298,14 +298,14 @@ const TunerBlock: React.FC<TunerBlockProps> = React.memo(({ char, title, testWor
                                 }}
                                 onBlur={() => setIsEditing(false)}
                                 autoFocus
-                                className="text-center bg-transparent border-none outline-none font-mono text-base text-slate-800 dark:text-slate-200 border-b border-dashed border-blue-500/50 py-1 w-full max-w-xs focus:ring-0"
+                                className="text-center bg-transparent border-none outline-none font-mono text-base text-zinc-900 dark:text-zinc-100 border-b border-dashed border-zinc-400 dark:border-zinc-600 py-1 w-full max-w-xs focus:ring-0"
                                 placeholder="Ex: HHHH, HHOHH"
                             />
-                            <p className="text-[10px] text-blue-500 mt-2 font-mono uppercase tracking-widest font-black animate-pulse">Enter para salvar</p>
+                            <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-2 font-mono uppercase tracking-widest font-black">Enter para salvar</p>
                         </div>
                     ) : (
                         <div 
-                            className="text-center py-1 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-900/30 rounded-xl relative group/preview min-h-[44px] flex flex-col justify-center items-center"
+                            className="text-center py-1 cursor-pointer transition-all hover:bg-zinc-50 dark:hover:bg-zinc-900/50 rounded-xl relative group/preview min-h-[44px] flex flex-col justify-center items-center"
                             onClick={() => {
                                 setEditValue(localWords.join(', '));
                                 setIsEditing(true);
@@ -317,7 +317,7 @@ const TunerBlock: React.FC<TunerBlockProps> = React.memo(({ char, title, testWor
                                     <LiveTestWord key={index} word={w} fontFamily={fontFamily} font={font} settings={settings} targetChar={char as string} />
                                 ))}
                             </div>
-                            <div className="absolute top-1 right-1 opacity-0 group-hover/preview:opacity-100 transition-opacity bg-blue-500/10 text-blue-400 p-1 rounded">
+                            <div className="absolute top-1 right-1 opacity-0 group-hover/preview:opacity-100 transition-opacity bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 p-1 rounded">
                                 <Edit2 className="w-3 h-3" />
                             </div>
                         </div>
@@ -559,18 +559,18 @@ export const MetricTuner: React.FC<MetricTunerProps> = ({ settings, onSettingsCh
   };
 
   return (
-    <div className="dark:bg-slate-900/50 bg-slate-100/50 backdrop-blur rounded-[2rem] p-4 md:p-8 border dark:border-slate-800 border-slate-200 shadow-2xl relative w-full h-full overflow-y-auto overflow-x-hidden custom-scrollbar">
-      <div className="flex items-center justify-between mb-4 md:mb-8 pb-3 md:pb-6 border-b dark:border-slate-800 border-slate-200 z-10 -mx-2 px-4">
+    <div className="dark:bg-zinc-900/50 bg-zinc-100/50 backdrop-blur rounded-[2rem] p-4 md:p-8 border dark:border-zinc-800 border-zinc-200 shadow-sm relative w-full h-full overflow-y-auto overflow-x-hidden custom-scrollbar">
+      <div className="flex items-center justify-between mb-4 md:mb-8 pb-3 md:pb-6 border-b dark:border-zinc-800 border-zinc-200 z-10 -mx-2 px-4">
         <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
-                <Settings2 className="w-5 h-5 text-blue-400" />
+            <div className="w-10 h-10 rounded-xl bg-zinc-200 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 flex items-center justify-center">
+                <Settings2 className="w-5 h-5 text-zinc-900 dark:text-zinc-100" />
             </div>
             <div>
-                <h2 className="text-2xl md:text-3xl font-black dark:text-white text-slate-900 tracking-tighter leading-none mb-1">
+                <h2 className="text-2xl md:text-3xl font-black dark:text-white text-zinc-950 tracking-tighter leading-none mb-1">
                     MÉTODO TRACY
                 </h2>
                 <div className="flex items-center gap-2">
-                    <p className="text-xs text-blue-400 uppercase font-black tracking-widest pb-[1px]">Walter Tracy (1914–1995)</p>
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400 uppercase font-black tracking-widest pb-[1px]">Walter Tracy (1914–1995)</p>
                     <TheoreticalTooltip content="Walter Tracy propõe que o ritmo tipográfico é uma relação direta entre o espaço interno (contraforma) e o espaço externo (side bearings)." />
                 </div>
             </div>
@@ -625,31 +625,31 @@ export const MetricTuner: React.FC<MetricTunerProps> = ({ settings, onSettingsCh
         </div>
 
         {/* Detailed Propagation Tuning */}
-        <div className="mt-12 border-t dark:border-slate-800 border-slate-200 pt-10">
+        <div className="mt-12 border-t dark:border-zinc-800 border-zinc-200 pt-10">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
                 <div>
-                    <h3 className="text-xl font-black dark:text-white text-slate-900 flex items-center gap-2 tracking-tight">
+                    <h3 className="text-xl font-black dark:text-white text-zinc-950 flex items-center gap-2 tracking-tight">
                         Ajustes de Exceção
                     </h3>
-                    <p className="text-xs dark:text-slate-500 text-slate-500 uppercase tracking-widest font-bold mt-1">Sobrescreva as regras para glifos específicos (H3/H5)</p>
+                    <p className="text-xs dark:text-zinc-400 text-zinc-600 uppercase tracking-widest font-bold mt-1">Sobrescreva as regras para glifos específicos (H3/H5)</p>
                 </div>
             </div>
             
-            <div className="dark:bg-slate-900/40 bg-slate-100/40 p-6 rounded-2xl border dark:border-slate-800 border-slate-200 shadow-xl">
+            <div className="dark:bg-zinc-900/40 bg-zinc-100/60 p-6 rounded-2xl border dark:border-zinc-800 border-zinc-200 shadow-sm">
                  {/* Selector */}
-                 <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8 dark:bg-slate-950/50 bg-slate-50/50 p-6 rounded-2xl border dark:border-slate-800/50 border-slate-200/50">
+                 <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8 dark:bg-zinc-950/60 bg-white p-6 rounded-2xl border dark:border-zinc-800 border-zinc-200">
                      <div className="flex-1">
                          <div className="flex items-center justify-between mb-2">
-                             <label className="text-xs dark:text-slate-500 text-slate-500 font-black uppercase tracking-widest block">Seletor de Glifo de Referência</label>
+                             <label className="text-xs dark:text-zinc-400 text-zinc-600 font-black uppercase tracking-widest block">Seletor de Glifo de Referência</label>
                              <button
                                  onClick={() => handleCopyUnicode(overrideChar)}
-                                 className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 text-slate-700 transition-all text-xs font-mono font-bold uppercase cursor-pointer shadow-sm hover:scale-105"
+                                 className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-100 text-zinc-900 transition-all text-xs font-mono font-bold uppercase cursor-pointer shadow-sm hover:scale-105"
                                  title="Copiar Unicode para o diagrama de espaçamento"
                              >
                                  {copied ? (
                                      <>
-                                         <Check className="w-3 h-3 text-green-500" />
-                                         <span className="text-green-500">Copiado!</span>
+                                         <Check className="w-3 h-3 text-zinc-950 dark:text-white" />
+                                         <span className="text-zinc-950 dark:text-white">Copiado!</span>
                                      </>
                                  ) : (
                                      <>
@@ -662,7 +662,7 @@ export const MetricTuner: React.FC<MetricTunerProps> = ({ settings, onSettingsCh
                          <select 
                             value={overrideChar}
                             onChange={(e) => onCharSelect(e.target.value)}
-                            className="w-full dark:bg-slate-900 bg-slate-100 border dark:border-slate-700 border-slate-300 rounded-xl px-4 py-3 dark:text-white text-slate-900 font-mono text-base shadow-inner focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 outline-none transition-all"
+                            className="w-full dark:bg-zinc-900 bg-zinc-100 border dark:border-zinc-700 border-zinc-300 rounded-xl px-4 py-3 dark:text-white text-zinc-950 font-mono text-base shadow-inner focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white outline-none transition-all"
                          >
                              {availableChars.map(c => (
                                  <option key={c} value={c}>
@@ -672,20 +672,20 @@ export const MetricTuner: React.FC<MetricTunerProps> = ({ settings, onSettingsCh
                          </select>
                      </div>
                      
-                     <div className="text-base dark:text-slate-400 text-slate-600 flex flex-col justify-end">
-                         <div className="flex items-center gap-3 dark:bg-slate-900 bg-slate-100 p-3 rounded-xl border dark:border-slate-800 border-slate-200">
+                     <div className="text-base dark:text-zinc-400 text-zinc-600 flex flex-col justify-end">
+                         <div className="flex items-center gap-3 dark:bg-zinc-900 bg-zinc-100 p-3 rounded-xl border dark:border-zinc-800 border-zinc-200">
                              <span className="text-xs font-black uppercase tracking-widest opacity-60">Status</span>
                              {hasOverride ? (
-                                 <motion.span initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="text-yellow-400 font-black px-3 py-1 bg-yellow-400/10 rounded-lg border border-yellow-400/20 text-xs uppercase tracking-widest">Sobrescrito</motion.span>
+                                 <motion.span initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="text-zinc-950 dark:text-white font-black px-3 py-1 bg-zinc-200 dark:bg-zinc-800 rounded-lg border border-zinc-300 dark:border-zinc-700 text-xs uppercase tracking-widest">Sobrescrito</motion.span>
                              ) : (
-                                 <span className="text-blue-400 font-black px-3 py-1 bg-blue-500/10 rounded-lg border border-blue-500/20 text-xs uppercase tracking-widest">Por Regra</span>
+                                 <span className="text-zinc-700 dark:text-zinc-300 font-black px-3 py-1 bg-zinc-100 dark:bg-zinc-900 rounded-lg border border-zinc-300 dark:border-zinc-700 text-xs uppercase tracking-widest">Por Regra</span>
                              )}
                          </div>
 
                          {hasOverride && (
                              <button 
                                onClick={resetOverride} 
-                               className="text-xs text-red-400 hover:text-red-300 font-black uppercase tracking-widest flex items-center gap-1.5 mt-3 justify-end transition-colors focus:outline-none focus:underline focus:ring-1 focus:ring-red-500 rounded"
+                               className="text-xs text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white font-black uppercase tracking-widest flex items-center gap-1.5 mt-3 justify-end transition-colors focus:outline-none focus:underline focus:ring-1 focus:ring-black dark:focus:ring-white rounded"
                                aria-label="Restaurar métricas originais"
                              >
                                  <RotateCcw className="w-3 h-3" /> Restaurar Original
@@ -700,19 +700,19 @@ export const MetricTuner: React.FC<MetricTunerProps> = ({ settings, onSettingsCh
                             {/* Override LSB */}
                             <div>
                                 <div className="flex justify-between items-center mb-1">
-                                    <label className="text-sm dark:text-slate-400 text-slate-600">Side Bearing Esquerdo</label>
+                                    <label className="text-sm dark:text-zinc-300 text-zinc-700 font-medium">Side Bearing Esquerdo</label>
                                     <input 
                                         type="number"
                                         value={displayLsb}
                                         onChange={(e) => updateOverride('lsb', Number(e.target.value))}
-                                        className={`w-24 dark:bg-gray-900 bg-white border rounded px-2 py-1 h-10 text-right text-sm font-bold outline-none transition-all focus:ring-1 focus:ring-blue-500 ${hasOverride ? 'border-yellow-600 text-yellow-700 dark:text-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.1)]' : 'dark:border-slate-700 border-slate-350 text-blue-600 dark:text-blue-400'}`}
+                                        className={`w-24 dark:bg-zinc-900 bg-white border rounded px-2 py-1 h-10 text-right text-sm font-bold outline-none transition-all focus:ring-1 focus:ring-black dark:focus:ring-white ${hasOverride ? 'border-black dark:border-white text-black dark:text-white' : 'dark:border-zinc-700 border-zinc-300 text-zinc-950 dark:text-white'}`}
                                         aria-label="Sobrescrever Side Bearing Esquerdo"
                                     />
                                 </div>
                                 <input 
                                     type="range" min="-50" max="300" value={displayLsb}
                                     onChange={(e) => updateOverride('lsb', Number(e.target.value))}
-                                    className="w-full accent-blue-500 h-1.5 dark:bg-slate-800 bg-slate-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                                    className="w-full accent-black dark:accent-white h-1.5 dark:bg-zinc-800 bg-zinc-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:ring-offset-2 focus:ring-offset-zinc-900"
                                     aria-label="Slider Sobrescrever Side Bearing Esquerdo"
                                 />
                             </div>
@@ -720,25 +720,25 @@ export const MetricTuner: React.FC<MetricTunerProps> = ({ settings, onSettingsCh
                              {/* Override RSB */}
                              <div>
                                  <div className="flex justify-between items-center mb-1">
-                                    <label className="text-sm dark:text-slate-400 text-slate-600">Side Bearing Direito</label>
+                                    <label className="text-sm dark:text-zinc-300 text-zinc-700 font-medium">Side Bearing Direito</label>
                                     <input 
                                         type="number"
                                         value={displayRsb}
                                         onChange={(e) => updateOverride('rsb', Number(e.target.value))}
-                                        className={`w-24 dark:bg-gray-900 bg-white border rounded px-2 py-1 h-10 text-right text-sm font-bold outline-none transition-all focus:ring-1 focus:ring-green-500 ${hasOverride ? 'border-yellow-600 text-yellow-700 dark:text-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.1)]' : 'dark:border-slate-700 border-slate-350 text-green-600 dark:text-green-400'}`}
+                                        className={`w-24 dark:bg-zinc-900 bg-white border rounded px-2 py-1 h-10 text-right text-sm font-bold outline-none transition-all focus:ring-1 focus:ring-black dark:focus:ring-white ${hasOverride ? 'border-black dark:border-white text-black dark:text-white' : 'dark:border-zinc-700 border-zinc-300 text-zinc-950 dark:text-white'}`}
                                         aria-label="Sobrescrever Side Bearing Direito"
                                     />
                                 </div>
                                 <input 
                                     type="range" min="-50" max="300" value={displayRsb}
                                     onChange={(e) => updateOverride('rsb', Number(e.target.value))}
-                                    className="w-full accent-green-500 h-1.5 dark:bg-slate-800 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                                    className="w-full accent-black dark:accent-white h-1.5 dark:bg-zinc-800 bg-zinc-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
                                 />
                             </div>
                         </div>
 
                         {/* Text Preview (Live) editable */}
-                        <div className="bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 shadow-md shadow-slate-100/80 dark:shadow-[0_10px_30px_rgba(0,0,0,0.6)] rounded-2xl p-4 md:p-5 mt-2 flex flex-col justify-center min-h-[110px] w-full max-w-[100vw] sm:max-w-full shrink-0 max-h-[300px] overflow-y-auto custom-scrollbar">
+                        <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-sm rounded-2xl p-4 md:p-5 mt-2 flex flex-col justify-center min-h-[110px] w-full max-w-[100vw] sm:max-w-full shrink-0 max-h-[300px] overflow-y-auto custom-scrollbar">
                             {isOverrideEditing ? (
                                 <div className="flex flex-col items-center justify-center w-full py-2" onClick={(e) => e.stopPropagation()}>
                                     <input 
@@ -757,14 +757,14 @@ export const MetricTuner: React.FC<MetricTunerProps> = ({ settings, onSettingsCh
                                         }}
                                         onBlur={() => setIsOverrideEditing(false)}
                                         autoFocus
-                                        className="text-center bg-transparent border-none outline-none font-mono text-base text-slate-800 dark:text-slate-200 border-b border-dashed border-blue-500/50 py-1 w-full max-w-xs focus:ring-0"
+                                        className="text-center bg-transparent border-none outline-none font-mono text-base text-zinc-900 dark:text-zinc-100 border-b border-dashed border-zinc-400 dark:border-zinc-600 py-1 w-full max-w-xs focus:ring-0"
                                         placeholder="Ex: nnBnn, ooBoo"
                                     />
-                                    <p className="text-[10px] text-blue-500 mt-2 font-mono uppercase tracking-widest font-black animate-pulse">Enter para salvar</p>
+                                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-2 font-mono uppercase tracking-widest font-black">Enter para salvar</p>
                                 </div>
                             ) : (
                                 <div 
-                                    className="text-center py-1 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-900/30 rounded-xl relative group/preview min-h-[44px] flex flex-col justify-center items-center"
+                                    className="text-center py-1 cursor-pointer transition-all hover:bg-zinc-50 dark:hover:bg-zinc-900/50 rounded-xl relative group/preview min-h-[44px] flex flex-col justify-center items-center"
                                     onClick={() => {
                                         setOverrideEditValue(currentOverrideWords.join(', '));
                                         setIsOverrideEditing(true);
@@ -776,7 +776,7 @@ export const MetricTuner: React.FC<MetricTunerProps> = ({ settings, onSettingsCh
                                             <LiveTestWord key={index} word={w} fontFamily={fontFamily} font={font} settings={localSettings} targetChar={overrideChar} />
                                         ))}
                                     </div>
-                                    <div className="absolute top-1 right-1 opacity-0 group-hover/preview:opacity-100 transition-opacity bg-blue-500/10 text-blue-400 p-1 rounded">
+                                    <div className="absolute top-1 right-1 opacity-0 group-hover/preview:opacity-100 transition-opacity bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 p-1 rounded">
                                         <Edit2 className="w-3 h-3" />
                                     </div>
                                 </div>
@@ -785,13 +785,13 @@ export const MetricTuner: React.FC<MetricTunerProps> = ({ settings, onSettingsCh
                     </div>
                     
                     {/* Visualizer */}
-                    <div className="h-40 md:h-64 lg:h-auto order-1 lg:order-2 flex flex-col min-h-[200px] md:min-h-[250px] dark:bg-slate-900 bg-white rounded-3xl border dark:border-slate-800 border-slate-200 overflow-hidden shadow-sm p-4 relative">
+                    <div className="h-40 md:h-64 lg:h-auto order-1 lg:order-2 flex flex-col min-h-[200px] md:min-h-[250px] dark:bg-zinc-900 bg-white rounded-3xl border dark:border-zinc-800 border-zinc-200 overflow-hidden shadow-sm p-4 relative">
                         <div className="flex items-center justify-between mb-4 z-10 w-full px-2">
-                            <h3 className="text-xs font-black dark:text-slate-400 text-slate-600 uppercase tracking-widest flex items-center gap-2">
+                            <h3 className="text-xs font-black dark:text-zinc-400 text-zinc-600 uppercase tracking-widest flex items-center gap-2">
                                 <Layers className="w-3.5 h-3.5" /> ANÁLISE GEOMÉTRICA
                             </h3>
                             <div className="flex items-center gap-2">
-                                <label className="text-xs font-black uppercase tracking-widest dark:text-slate-400 text-slate-600 whitespace-nowrap">ALTERAR GLIFO:</label>
+                                <label className="text-xs font-black uppercase tracking-widest dark:text-zinc-400 text-zinc-600 whitespace-nowrap">ALTERAR GLIFO:</label>
                                 <input 
                                     type="text"
                                     maxLength={1}
@@ -804,7 +804,7 @@ export const MetricTuner: React.FC<MetricTunerProps> = ({ settings, onSettingsCh
                                         }
                                     }}
                                     onFocus={(e) => e.target.select()}
-                                    className="bg-slate-100 dark:bg-slate-950 border-2 dark:border-blue-500/50 border-blue-400 rounded-lg px-2 py-1 text-center text-lg font-black dark:text-white text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none w-16 shadow-sm transition-all"
+                                    className="bg-zinc-100 dark:bg-zinc-950 border-2 dark:border-zinc-700 border-zinc-400 rounded-lg px-2 py-1 text-center text-lg font-black dark:text-white text-zinc-900 focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white outline-none w-16 shadow-sm transition-all"
                                 />
                             </div>
                         </div>

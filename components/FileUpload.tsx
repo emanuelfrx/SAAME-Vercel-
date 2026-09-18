@@ -60,28 +60,28 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileLoaded, compact = 
       onDrop={handleDrop}
       className={`relative flex flex-col items-center justify-center ${compact ? 'h-auto py-8' : 'min-h-[300px] h-[40vh] md:h-[50vh]'} border-2 border-dashed transition-all duration-300 rounded-3xl ${
         isDragging 
-          ? 'border-blue-500 bg-blue-500/10 scale-[1.02] shadow-[0_0_30px_rgba(59,130,246,0.1)]' 
+          ? 'border-black dark:border-white bg-black/5 dark:bg-white/5 scale-[1.02] shadow-xl' 
           : error 
-          ? 'border-red-500/50 bg-red-500/5' 
-          : 'dark:border-slate-800 border-slate-200 dark:bg-slate-900/40 bg-slate-100/40 dark:hover:bg-slate-900/60 hover:bg-slate-100/60 dark:hover:border-slate-700 hover:border-slate-300'
+          ? 'border-zinc-600 bg-zinc-500/5' 
+          : 'dark:border-zinc-800 border-zinc-300 dark:bg-zinc-900/40 bg-zinc-100/40 dark:hover:bg-zinc-900/60 hover:bg-zinc-100/60 dark:hover:border-zinc-700 hover:border-zinc-400'
       }`}
     >
       <div className={`text-center ${compact ? 'p-4' : 'p-8'} flex flex-col items-center`}>
         <div className={`transition-all duration-500 rounded-2xl inline-flex p-4 mb-6 ${
-          error ? 'bg-red-500/10 text-red-400' : 
-          fileSelected ? 'bg-green-500/10 text-green-400' :
-          'dark:bg-slate-800 bg-slate-200 text-blue-400'
+          error ? 'dark:bg-zinc-800 bg-zinc-200 text-zinc-900 dark:text-white' : 
+          fileSelected ? 'dark:bg-zinc-800 bg-zinc-200 text-zinc-900 dark:text-white' :
+          'dark:bg-zinc-800 bg-zinc-200 text-zinc-900 dark:text-white'
         }`}>
           {error ? <AlertCircle className="w-8 h-8" /> : 
-           fileSelected ? <CheckCircle2 className="w-8 h-8 animate-bounce" /> :
+           fileSelected ? <CheckCircle2 className="w-8 h-8" /> :
            <Upload className="w-8 h-8" />}
         </div>
         
-        <h3 className="text-2xl font-black dark:text-white text-slate-900 mb-2 tracking-tight">
+        <h3 className="text-2xl font-black dark:text-white text-zinc-950 mb-2 tracking-tight">
           {fileSelected ? 'Fonte Carregada!' : 'Importar Fontes'}
         </h3>
         
-        <p className="dark:text-slate-500 text-slate-500 mb-8 max-w-xs text-base font-medium leading-relaxed">
+        <p className="dark:text-zinc-400 text-zinc-600 mb-8 max-w-xs text-base font-medium leading-relaxed">
           {error ? error : 
            fileSelected ? `Pronto para processar: ${fileSelected}` :
            'Arraste o arquivo ou clique para selecionar. Formatos .otf e .ttf suportados.'}
@@ -89,7 +89,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileLoaded, compact = 
         
         {!fileSelected && (
           <label 
-            className="cursor-pointer bg-blue-600 hover:bg-blue-500 text-white font-black py-3 px-10 rounded-xl transition-all shadow-xl shadow-blue-600/20 text-base uppercase tracking-widest transform hover:scale-105 active:scale-95 focus-within:ring-4 focus-within:ring-blue-500/50 outline-none"
+            className="cursor-pointer bg-black hover:bg-zinc-800 text-white dark:bg-white dark:hover:bg-zinc-200 dark:text-black font-black py-3 px-10 rounded-xl transition-all shadow-md text-sm uppercase tracking-widest transform active:scale-95 focus-within:ring-2 focus-within:ring-black dark:focus-within:ring-white outline-none"
             title="Selecionar arquivo de fonte"
           >
             <span>Selecionar Arquivo</span>
@@ -104,7 +104,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileLoaded, compact = 
         )}
 
         {fileSelected && !error && (
-          <div className="flex items-center gap-2 text-xs text-green-400 font-bold uppercase tracking-widest bg-green-400/5 px-4 py-2 rounded-full border border-green-400/10">
+          <div className="flex items-center gap-2 text-xs dark:text-white text-zinc-950 font-bold uppercase tracking-widest dark:bg-white/10 bg-black/5 px-4 py-2 rounded-full border dark:border-white/20 border-black/10">
             Arquivo validado com sucesso
           </div>
         )}
