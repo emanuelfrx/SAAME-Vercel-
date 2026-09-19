@@ -34,7 +34,7 @@ import { TheoreticalTooltip } from './components/TheoreticalTooltip';
 import { AnalysisCanvas } from './components/AnalysisCanvas';
 import { MethodVisualizer } from './components/MethodVisualizer';
 // Added 'Home' to the imports from lucide-react
-import { ArrowRight, Activity, Type, MousePointerClick, RefreshCcw, Loader2, PlayCircle, Columns, Home, CheckCircle2, HelpCircle, X, Target, Zap, Layout, Settings2, Layers } from 'lucide-react';
+import { ArrowRight, Activity, Type, MousePointerClick, RefreshCcw, Loader2, PlayCircle, Columns, Home, CheckCircle2, HelpCircle, X, Target, Zap, Layout, Settings2, Layers, AlertCircle } from 'lucide-react';
 import { CompareSpacingFlow } from './CompareSpacingFlow';
 
 const App: React.FC = () => {
@@ -47,7 +47,7 @@ const App: React.FC = () => {
   const [processingStatus, setProcessingStatus] = useState({ progress: 0, status: 'Iniciando...', title: 'Iniciando' });
   const [fontBuffer, setFontBuffer] = useState<ArrayBuffer | null>(null);
   const [fontName, setFontName] = useState<string>('');
-  
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   // Shared worker for background commits (Shadow Metrics)
   const workerRef = useRef<Worker | null>(null);
 
@@ -155,7 +155,7 @@ const App: React.FC = () => {
             buffer: buffer.slice(0)
         });
     }
-
+    
     try {
         // 1. Store Original immediately (minimal processing)
         const originalState = await createFontState(buffer.slice(0), MethodType.ORIGINAL);
@@ -261,21 +261,24 @@ const App: React.FC = () => {
                 setShowHelp(true);
                 setIsProcessing(false);
                 worker.terminate();
-            } else if (e.data.action === 'ERROR') {
-                console.error("Worker error:", e.data.error);
-                setIsProcessing(false);
-                worker.terminate();
-            }
-        };
-
-        worker.onerror = (err) => {
-            console.error("Worker fatal error:", err);
+            }else if (e.data.action === 'ERROR') {
+            console.error("Worker error:", e.data.error);
+            setErrorMessage('Não foi possível processar esta fonte. Verifique se o arquivo não está corrompido e se contém os glifos H, O, n e o.');
             setIsProcessing(false);
             worker.terminate();
-        };
+        }
+    };
+
+    worker.onerror = (err) => {
+        console.error("Worker fatal error:", err);
+        setErrorMessage('Ocorreu um erro inesperado ao processar a fonte. Tente novamente ou use outro arquivo.');
+        setIsProcessing(false);
+        worker.terminate();
+    };
 
     } catch (error) {
         console.error("Processing failed:", error);
+        setErrorMessage('Não foi possível importar este arquivo. Confirme se é um .otf ou .ttf válido.');
         setIsProcessing(false);
     }
   };
@@ -335,22 +338,29 @@ const App: React.FC = () => {
                     metrics: metrics
                 };
 
-                setFonts(prev => ({
-                    ...prev,
-                    [MethodType.TRACY]: newTracyState,
-                    [MethodType.SOUSA]: newSousaState
-                }));
+                setFonts(prev => {
+                    if (prev[MethodType.TRACY]?.url) URL.revokeObjectURL(prev[MethodType.TRACY]!.url);
+                    if (prev[MethodType.SOUSA]?.url) URL.revokeObjectURL(prev[MethodType.SOUSA]!.url);
+                    return {
+                        ...prev,
+                        [MethodType.TRACY]: newTracyState,
+                        [MethodType.SOUSA]: newSousaState
+                    };
+                });
 
                 setStep(AppStep.ANALYSIS);
                 setIsProcessing(false);
                 worker.terminate();
-            } else {
-                setIsProcessing(false);
-                worker.terminate();
+            }else {
+              console.error("Worker error:", e.data?.error);
+              setErrorMessage('Não foi possível reprocessar o espaçamento. Tente novamente.');
+              setIsProcessing(false);
+              worker.terminate();
             }
         };
     } catch (e) {
         console.error(e);
+        setErrorMessage('Ocorreu um erro ao reprocessar a fonte.');
         setIsProcessing(false);
     }
   };
@@ -639,10 +649,20 @@ const App: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.9 }}
-            className="mt-10 flex flex-col items-center gap-3 pb-8"
+            className="mt-16 flex flex-col items-center gap-6 pb-12 px-4 text-center max-w-3xl"
         >
             <div className="h-px w-20 dark:bg-zinc-800 bg-zinc-300" />
-            <p className="text-[11px] uppercase tracking-[0.25em] dark:text-zinc-500 text-zinc-500 font-bold">Desenvolvido para fins acadêmicos e tipográficos</p>
+            <div className="flex flex-col gap-4 p-6 rounded-2xl dark:bg-zinc-900/40 bg-zinc-100/50 border dark:border-zinc-800 border-zinc-200 shadow-sm">
+              <p className="text-[11px] uppercase tracking-[0.3em] dark:text-zinc-400 text-zinc-600 font-black">Informações Legais & Uso</p>
+              <p className="text-[13px] dark:text-zinc-400 text-zinc-600 leading-relaxed">
+                <span className="font-black dark:text-zinc-300 text-zinc-800">AVISO LEGAL:</span> O usuário é integralmente responsável por garantir que possui os direitos autorais e licenças necessários para o processamento e a exportação de qualquer fonte importada neste sistema, incluindo os arquivos resultantes. O SAAME Lab é uma ferramenta acadêmica de código aberto, sem fins lucrativos, e não armazena nem distribui os arquivos carregados ou gerados.
+              </p>
+              <div className="flex justify-center items-center gap-4 text-[10px] uppercase tracking-widest font-bold dark:text-zinc-600 text-zinc-400">
+                <span>SAAME LAB v2.0</span>
+                <span className="w-1 h-1 rounded-full bg-current opacity-50" />
+                <span>Uso Acadêmico</span>
+              </div>
+            </div>
         </motion.div>
       </div>
     );
@@ -656,6 +676,13 @@ const App: React.FC = () => {
   // O RESTO DO COMPONENTE PERMANECE ABSOLUTAMENTE IGUAL (Fluxo LAB original)
   return (
     <div className="flex flex-col min-h-screen w-full dark:bg-slate-950 bg-slate-50 dark:text-slate-200 text-slate-800 font-sans relative">
+      {errorMessage && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[999] max-w-lg w-[92%] bg-red-600 text-white px-4 py-3 rounded-xl shadow-xl flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+          <div className="flex-1 text-sm font-medium">{errorMessage}</div>
+          <button onClick={() => setErrorMessage(null)} className="text-white/80 hover:text-white font-bold px-1" aria-label="Fechar aviso">✕</button>
+        </div>
+      )}
       {/* Background Decor */}
       <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none" />
       
@@ -1266,8 +1293,9 @@ const App: React.FC = () => {
                     </button>
                 </div>
                 <div className="flex-1 flex flex-col w-full min-h-[650px] min-w-0">
-                    <AnalysisCanvas 
+                     <AnalysisCanvas 
                       fonts={fonts} 
+                      rawBuffer={fontBuffer}
                       onUpdateGlyph={handleUpdateIndividualGlyph} 
                       selectedChar={sharedSelectedChar}
                       onCharSelect={setSharedSelectedChar}

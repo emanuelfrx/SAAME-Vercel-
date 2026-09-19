@@ -121,20 +121,20 @@ export const GlyphVisualizer: React.FC<GlyphVisualizerProps> = React.memo(({ cha
   const gridSize = 100;
 
   return (
-    <div className="bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 shadow-md shadow-slate-100/80 dark:shadow-[0_10px_30px_rgba(0,0,0,0.6)] rounded-2xl overflow-hidden flex flex-col items-center justify-center relative select-none h-full w-full">
+    <div className="bg-white dark:bg-zinc-900 border dark:border-zinc-800 border-zinc-200 rounded-2xl shadow-sm overflow-hidden flex flex-col items-center justify-center relative select-none h-full w-full">
        
        <div className="absolute top-4 left-6 flex flex-col gap-1 z-10 pointer-events-none">
-            <div className="dark:bg-slate-900/80 bg-slate-100/80 backdrop-blur-sm border dark:border-slate-700/50 border-slate-300/50 px-3 py-1.5 rounded-xl text-xs font-mono shadow-2xl">
-               <span className="dark:text-slate-500 text-slate-500 uppercase font-black tracking-tighter mr-2">UPM:</span> 
-               <span className="dark:text-slate-100 text-slate-900 font-bold">{upm}</span>
+            <div className="dark:bg-zinc-900/90 bg-white/90 backdrop-blur-sm border dark:border-zinc-700/60 border-zinc-200/80 px-3 py-1.5 rounded-xl text-xs font-mono shadow-sm">
+               <span className="dark:text-zinc-400 text-zinc-500 uppercase font-black tracking-tighter mr-2">UPM:</span> 
+               <span className="dark:text-zinc-100 text-zinc-900 font-bold">{upm}</span>
             </div>
        </div>
 
        <div className="absolute top-4 right-6 flex flex-col gap-1 z-10 pointer-events-none text-right">
-            <div className="dark:bg-slate-900/80 bg-slate-100/80 backdrop-blur-sm border dark:border-slate-700/50 border-slate-300/50 px-4 py-1.5 rounded-xl text-xs font-mono shadow-2xl flex gap-4">
-               <span className="uppercase dark:text-slate-500 text-slate-500 font-black tracking-tighter">LSB: <span className="dark:text-white text-zinc-900 font-bold ml-1">{lsb}</span></span>
-               <span className="uppercase dark:text-slate-500 text-slate-500 font-black tracking-tighter">RSB: <span className="dark:text-white text-zinc-900 font-bold ml-1">{rsb}</span></span>
-               <span className="uppercase dark:text-slate-500 text-slate-500 font-black tracking-tighter">AW: <span className="dark:text-slate-100 text-slate-900 font-bold ml-1">{Math.round(advanceLineX - originLineX)}</span></span>
+            <div className="dark:bg-zinc-900/90 bg-white/90 backdrop-blur-sm border dark:border-zinc-700/60 border-zinc-200/80 px-4 py-1.5 rounded-xl text-xs font-mono shadow-sm flex gap-4">
+               <span className="uppercase dark:text-zinc-400 text-zinc-500 font-black tracking-tighter">LSB: <span className="dark:text-white text-zinc-900 font-bold ml-1">{lsb}</span></span>
+               <span className="uppercase dark:text-zinc-400 text-zinc-500 font-black tracking-tighter">RSB: <span className="dark:text-white text-zinc-900 font-bold ml-1">{rsb}</span></span>
+               <span className="uppercase dark:text-zinc-400 text-zinc-500 font-black tracking-tighter">AW: <span className="dark:text-zinc-100 text-zinc-900 font-bold ml-1">{Math.round(advanceLineX - originLineX)}</span></span>
             </div>
        </div>
 

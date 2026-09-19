@@ -130,7 +130,7 @@ export const OriginalTuner: React.FC<{ font: FontState | null, selectedChar: str
                             )}
                         </button>
                     </div>
-                    <div className="flex-1 min-h-[250px] bg-white dark:bg-zinc-900 rounded-2xl border dark:border-zinc-800 border-zinc-200 shadow-sm overflow-hidden p-2">
+                    <div className="h-[320px] md:h-[360px] w-full shrink-0">
                         <GlyphVisualizer 
                             char={selectedChar} 
                             font={font} 

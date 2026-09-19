@@ -41,6 +41,7 @@ const AnalysisSkeleton = () => (
 
 interface AnalysisCanvasProps {
   fonts: Record<string, FontState | null>;
+  rawBuffer?: ArrayBuffer | null; // ADICIONE ESTA LINHA
   isCompareMode?: boolean;
   customLabels?: {
       original: string;
@@ -324,23 +325,24 @@ const OVERLAY_PRESETS = [
 
 export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({ 
   fonts, 
+  rawBuffer,
   isCompareMode = false, 
   customLabels, 
   onUpdateGlyph, 
   selectedChar = 'H', 
-  onCharSelect = () => {}, 
+  onCharSelect = (_char: string) => {}, 
   lastEditedMethod = MethodType.TRACY 
 }) => {
   const { isDark } = useTheme();
 
   // Ensure we have at least one font loaded to display analysis
-  const hasFonts = Object.values(fonts).some(f => !!f && !!f.fontObj);
+  const hasFonts = Object.values(fonts).some((f: any) => !!f && !!f.fontObj);
   if (!hasFonts) return <AnalysisSkeleton />;
 
   const [testText, setTestText] = useState(PARAGRAPH_TEXT);
-  const [analysisPreset, setAnalysisPreset] = useState<'paragraph' | 'words-overlay' | 'custom'>(() => {
+  const [analysisPreset, setAnalysisPreset] = useState<'paragraph' | 'words-overlay' | 'full-set' | 'custom'>(() => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem('saame_analysis_preset') : null;
-    if (saved && ['paragraph', 'words-overlay', 'custom'].includes(saved)) {
+    if (saved && ['paragraph', 'words-overlay', 'full-set', 'custom'].includes(saved)) {
       return saved as any;
     }
     return 'paragraph';
@@ -425,6 +427,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
   });
   const [isReportExportModalOpen, setIsReportExportModalOpen] = useState(false);
   const [reportFileName, setReportFileName] = useState("");
+  const [exportQuality, setExportQuality] = useState<'draft' | 'standard' | 'high'>('standard');
   const [hasVisitedOverlay, setHasVisitedOverlay] = useState(false);
 
   useEffect(() => {
@@ -545,12 +548,16 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
           setIsExportModalOpen(true);
       }
   };
-
   const confirmExport = () => {
       if (exportMethodType && exportFileName) {
           const fontState = fonts[exportMethodType];
           if (fontState?.fontObj) {
-              downloadFont(fontState.fontObj, exportMethodType, exportFileName);
+              downloadFont(
+                  fontState.fontObj,
+                  exportMethodType,
+                  exportFileName,
+                  exportMethodType === MethodType.ORIGINAL ? (rawBuffer ?? undefined) : undefined
+              );
               setIsExportModalOpen(false);
           }
       }
@@ -566,7 +573,8 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
   const avgSBs = useMemo(() => {
     const results: Record<string, number> = {};
     Object.entries(fonts).forEach(([type, f]) => {
-        if (f?.fontObj) results[type] = calculateAverageSB(f.fontObj);
+        const fontState = f as FontState | null;
+        if (fontState?.fontObj) results[type] = calculateAverageSB(fontState.fontObj);
     });
     return results;
   }, [fonts]);
@@ -575,7 +583,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
       return avgSBs[type] || 0;
   };
 
-  const setPreset = (text: string, size: number, presetType: 'paragraph' | 'words-overlay') => {
+  const setPreset = (text: string, size: number, presetType: 'paragraph' | 'words-overlay' | 'full-set') => {
       setTestText(text);
       setFontSize(size);
       setAnalysisPreset(presetType);
@@ -718,529 +726,491 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
         .join('\n');
   }, [fonts]);
 
-  const handlePdfExport = async (nameArg?: string) => {
-    if (!exportRef.current) return;
-    
-    // Explicitly check if nameArg is a string to avoid React event objects crashing endsWith
-    const customName = typeof nameArg === 'string' ? nameArg : undefined;
-    
-    if (!customName) {
-      const dateStr = new Date().toISOString().split('T')[0];
-      const viewStr = viewMode === 'side-by-side' ? 'Comparacao' : 'Sobreposicao';
-      const originalName = fonts[MethodType.ORIGINAL]?.fontObj?.names?.fontFamily?.en?.replace(/\s/g, '_') || 'Fonte';
-      
-      const defaultName = `Relatorio_${originalName}_${viewStr}_${dateStr}`;
-      setReportFileName(defaultName);
-      setIsReportExportModalOpen(true);
-      return;
-    }
+const handlePdfExport = async () => {
+  if (!exportRef.current) {
+    console.error('Elemento de análise não encontrado.');
+    return;
+  }
 
-    setIsReportExportModalOpen(false);
-    setIsExportingPdf(true);
+  setIsExportingPdf(true);
+  setPdfExportStatus({
+    stage: 'Inicializando',
+    progress: 5,
+    detail: 'Preparando captura do documento...'
+  });
+
+  try {
+    const targetEl = exportRef.current;
+
+    // ============================================================
+    // CONFIGURAÇÃO DA PÁGINA A4
+    // ============================================================
+
+    const PAGE_WIDTH_MM = 210;
+    const PAGE_HEIGHT_MM = 297;
+
+    const MARGIN_MM = 5;
+    const HEADER_HEIGHT_MM = 5;
+    const FOOTER_HEIGHT_MM = 5;
+
+    // Espaço de segurança entre o conteúdo e o rodapé.
+    const CONTENT_BOTTOM_GAP_MM = 5;
+
+    const CONTENT_WIDTH_MM =
+      PAGE_WIDTH_MM - MARGIN_MM * 2;
+
+    const CONTENT_HEIGHT_MM =
+      PAGE_HEIGHT_MM -
+      MARGIN_MM -
+      HEADER_HEIGHT_MM -
+      FOOTER_HEIGHT_MM -
+      CONTENT_BOTTOM_GAP_MM;
+
+    // ============================================================
+    // CONFIGURAÇÃO DE RENDERIZAÇÃO
+    // ============================================================
+
+    // 2.5–3.0 costuma produzir PDF suficientemente nítido
+    // sem criar um canvas gigantesco.
+    const EXPORT_SCALE = 3;
+
+    // ============================================================
+    // CAPTURA DO HTML
+    // ============================================================
     setPdfExportStatus({
-      stage: 'Sincronização de Fontes',
-      progress: 6,
-      detail: 'Carregando fontes web e sincronizando contornos vetoriais...'
+      stage: 'Captura de Tela',
+      progress: 20,
+      detail: 'Rasterizando glifos e elementos gráficos...'
     });
 
-    // Yield control briefly so React renders the loading screen immediately
-    await new Promise(resolve => setTimeout(resolve, 80));
+    const canvas = await html2canvas(targetEl, {
+      scale: EXPORT_SCALE,
 
-    try {
-      // Ensure all custom fonts and webfonts are fully rasterized & ready in browser memory
-      if (document.fonts && document.fonts.ready) {
-        setPdfExportStatus({
-          stage: 'Sincronização de Glifos',
-          progress: 12,
-          detail: 'Validando métricas e curvas de Bézier dos glifos...'
-        });
-        await document.fonts.ready;
-      }
+      useCORS: true,
 
-      setPdfExportStatus({
-        stage: 'Análise de Geometria HD',
-        progress: 22,
-        detail: fontSize <= 20 
-          ? 'Ativando matriz Ultra-HD (600 DPI) para máxima nitidez em corpos de texto pequenos...' 
-          : 'Calculando proporções de mancha gráfica para matriz HD editorial...'
-      });
-      await new Promise(resolve => setTimeout(resolve, 60));
+      backgroundColor: '#ffffff',
 
-      const targetEl = exportRef.current;
-      const elWidth = Math.max(800, targetEl.scrollWidth || 1200);
-      const elHeight = Math.max(600, targetEl.scrollHeight || 1000);
+      logging: false,
 
-      // Ultra-HD Quality calculation dynamically adapted to typographic body size:
-      // At small sizes (e.g. <= 16px), a fixed 300 DPI yield can produce only 20-30 raster pixels per em,
-      // which causes blurry serifs, muddy counters, and loss of edge contrast.
-      // By dynamically supersampling to 550–650 DPI (~6000-7200px canvas width) for small body sizes,
-      // small characters gain 70-85+ physical raster pixels, rendering razor-sharp contours, distinct sidebearings,
-      // and crystal-clear letterforms even under close inspection or zoom in the generated PDF.
-      let targetCanvasWidth = 3800; // standard display sizes (> 40px)
-      if (fontSize <= 14) {
-        targetCanvasWidth = 6800; // ~630 DPI ultra-HD specimen grade
-      } else if (fontSize <= 20) {
-        targetCanvasWidth = 6000; // ~560 DPI high-precision body grade
-      } else if (fontSize <= 28) {
-        targetCanvasWidth = 5200; // ~480 DPI
-      } else if (fontSize <= 40) {
-        targetCanvasWidth = 4400; // ~410 DPI
-      }
+      // IMPORTANTE:
+      // Não definir height aqui.
+      // O html2canvas precisa descobrir a altura real
+      // do conteúdo depois das alterações feitas no clone.
+      width: targetEl.scrollWidth,
 
-      let exportScale = Number((targetCanvasWidth / elWidth).toFixed(2));
+      windowWidth: Math.max(
+        document.documentElement.clientWidth,
+        targetEl.scrollWidth
+      ),
 
-      // Guard within safe browser Canvas dimensional bounds (prevent exceeding memory limits)
-      const maxCanvasDim = 13500;
-      if (elHeight * exportScale > maxCanvasDim) {
-        exportScale = Number((maxCanvasDim / elHeight).toFixed(2));
-      }
-      if (elWidth * exportScale > maxCanvasDim) {
-        exportScale = Number((maxCanvasDim / elWidth).toFixed(2));
-      }
-      exportScale = Math.max(2.5, exportScale);
+      imageTimeout: 40000,
 
-      const achievedDpi = Math.round((elWidth * exportScale) / (273 / 25.4));
+      allowTaint: false,
 
-      setPdfExportStatus({
-        stage: 'Rasterização de Ultra-Alta Resolução',
-        progress: 40,
-        detail: `Renderizando glifos em matriz ultra-HD (${achievedDpi} DPI, escala ${exportScale}x) com anti-aliasing de alta precisão...`
-      });
-      await new Promise(resolve => setTimeout(resolve, 80));
+      onclone: (clonedDoc) => {
+        const clonedElement =
+          clonedDoc.querySelector(
+            '[data-export-target="true"]'
+          ) as HTMLElement | null;
 
-      const canvas = await html2canvas(targetEl, {
-        scale: exportScale,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        windowWidth: elWidth + 300,
-        height: null,
-        imageTimeout: 25000,
-        onclone: async (clonedDoc) => {
-          // Sync loaded FontFaces into the cloned document's font registry
-          try {
-            if (document.fonts) {
-              document.fonts.forEach((fontFace) => {
-                try {
-                  (clonedDoc as any).fonts?.add(fontFace);
-                } catch (err) {}
-              });
-            }
-          } catch (e) {}
+        if (!clonedElement) {
+          console.warn(
+            'Elemento de exportação não encontrado no clone.'
+          );
+          return;
+        }
 
-          // Inject custom @font-face rules and enforce optimizeLegibility font rendering
-          const cloneStyle = clonedDoc.createElement('style');
-          cloneStyle.textContent = `
-            ${fontFacesCSS}
-            * {
-              -webkit-font-smoothing: antialiased !important;
-              -moz-osx-font-smoothing: grayscale !important;
-              text-rendering: optimizeLegibility !important;
-              font-feature-settings: "kern" 1, "liga" 1, "calt" 1 !important;
-              font-kerning: normal !important;
-              font-synthesis: none !important;
-            }
-            p, span, h4 {
-              text-rendering: optimizeLegibility !important;
-              letter-spacing: normal;
-            }
-          `;
-          clonedDoc.head.appendChild(cloneStyle);
+        // ========================================================
+        // GARANTE QUE O CONTEÚDO POSSA CRESCER VERTICALMENTE
+        // ========================================================
 
-          // Await cloned document font readiness so html2canvas renders with the actual OpenType fonts
-          if ((clonedDoc as any).fonts && (clonedDoc as any).fonts.ready) {
-            try {
-              await (clonedDoc as any).fonts.ready;
-            } catch (err) {}
-          }
+        clonedElement.style.height = 'auto';
+        clonedElement.style.minHeight = '0';
+        clonedElement.style.maxHeight = 'none';
 
-          const element = clonedDoc.querySelector('[data-export-target="true"]') as HTMLElement;
-          if (element) {
-            element.style.width = `${targetEl.scrollWidth}px`;
-            element.style.backgroundColor = '#ffffff';
-            element.style.color = '#050811';
+        clonedElement.style.overflow = 'visible';
+
+        clonedElement.style.width =
+          `${targetEl.scrollWidth}px`;
+
+        // ========================================================
+        // REMOVE LIMITAÇÕES DE ALTURA DOS FILHOS
+        // ========================================================
+
+        const allElements =
+          clonedElement.querySelectorAll<HTMLElement>('*');
+
+        allElements.forEach((element) => {
+          const computed =
+            clonedDoc.defaultView?.getComputedStyle(element);
+
+          if (!computed) return;
+
+          if (
+            computed.overflow === 'hidden' ||
+            computed.overflowY === 'hidden' ||
+            computed.maxHeight !== 'none'
+          ) {
+            element.style.maxHeight = 'none';
             element.style.height = 'auto';
             element.style.overflow = 'visible';
-            element.style.maxHeight = 'none';
-
-            // Stabilize side-by-side columns to ensure proportional distribution and avoid line overflow
-            if (viewMode === 'side-by-side') {
-              element.style.display = 'flex';
-              element.style.flexDirection = 'row';
-              element.style.width = '100%';
-              const cols = element.querySelectorAll(':scope > div');
-              const colCount = cols.length || 1;
-              cols.forEach((col) => {
-                const colEl = col as HTMLElement;
-                colEl.style.minWidth = '0';
-                colEl.style.maxWidth = 'none';
-                colEl.style.flex = `1 1 ${100 / colCount}%`;
-                colEl.style.width = `${100 / colCount}%`;
-                colEl.style.overflow = 'visible';
-              });
-            }
-
-            if (viewMode === 'overlay') {
-              const overlayMaster = element.querySelector('.overlay-height-master') as HTMLElement;
-              const masterP = overlayMaster?.querySelector('p');
-              element.style.position = 'relative';
-              element.style.display = 'block';
-
-              if (overlayMaster) {
-                overlayMaster.style.opacity = '1';
-                overlayMaster.style.visibility = 'visible';
-                overlayMaster.style.position = 'relative';
-                overlayMaster.style.display = 'block';
-                overlayMaster.style.width = '100%';
-              }
-
-              if (masterP) {
-                masterP.style.height = 'auto';
-                masterP.style.overflow = 'visible';
-                masterP.style.whiteSpace = 'pre-wrap';
-                masterP.style.wordBreak = 'break-word';
-                const calcHeight = masterP.getBoundingClientRect().height || masterP.offsetHeight;
-                element.style.minHeight = `${calcHeight + 350}px`;
-                element.style.height = 'auto';
-              }
-            }
-
-            // Expand scroll containers
-            const containers = element.querySelectorAll('div');
-            containers.forEach(div => {
-              if (div.classList.contains('overflow-auto') || div.classList.contains('overflow-y-auto')) {
-                div.style.overflow = 'visible';
-                div.style.height = 'auto';
-                div.style.maxHeight = 'none';
-              }
-            });
-
-            // Adjust text elements for clean white background and deep typographic contrast
-            const textElements = element.querySelectorAll('p, h4, span, div');
-            textElements.forEach((el) => {
-              const hEl = el as HTMLElement;
-              if (hEl.style.backgroundImage && hEl.style.backgroundImage.includes('data:image/svg')) {
-                hEl.style.backgroundImage = gridLight;
-                return;
-              }
-              const style = window.getComputedStyle(hEl);
-              const color = style.color;
-              // Enforce high-density typographic black on light/grey text to maximize legibility and edge contrast
-              if (
-                color.startsWith('rgb(2') || 
-                color === 'white' || 
-                color.includes('255, 255') || 
-                color.includes('209, 213') ||
-                color.includes('156, 163, 175') ||
-                color.includes('107, 114, 128') ||
-                color.includes('75, 85, 99') ||
-                color.includes('55, 65, 81')
-              ) {
-                hEl.style.color = '#050811';
-              }
-            });
-
-            // Clean borders & backgrounds for paper print
-            const bordered = element.querySelectorAll('.border-gray-800, .border-gray-700, .border-slate-800, .border-slate-700, .bg-gray-900, .bg-slate-900');
-            bordered.forEach(el => {
-              (el as HTMLElement).style.borderColor = '#e2e8f0';
-              (el as HTMLElement).style.backgroundColor = '#ffffff';
-            });
-
-            if (viewMode === 'overlay') {
-              const allPs = element.querySelectorAll('p');
-              allPs.forEach(p => {
-                const parent = p.parentElement;
-                const isReference = p.closest('.overlay-height-master') || (parent && parent.classList.contains('absolute') && !p.style.webkitTextStroke.includes('px'));
-                
-                if (isReference) {
-                  p.style.color = 'rgba(15, 23, 42, 0.08)';
-                  p.style.webkitTextStroke = 'none';
-                  p.style.opacity = '1';
-                  p.style.visibility = 'visible';
-                } else {
-                  p.style.color = 'transparent';
-                  p.style.opacity = '1';
-                  if (p.style.webkitTextStroke && p.style.webkitTextStroke.includes('px')) {
-                    const strokeParts = p.style.webkitTextStroke.split(' ');
-                    const rawSize = parseFloat(strokeParts[0]);
-                    if (!isNaN(rawSize)) {
-                      p.style.webkitTextStroke = `${Math.max(0.7, rawSize * 0.95)}px ${strokeParts.slice(1).join(' ')}`;
-                    }
-                  }
-                }
-              });
-            }
-
-            const legend = element.querySelector('.overlay-legend') as HTMLElement;
-            if (legend) {
-              legend.style.position = 'absolute';
-              legend.style.bottom = '12px';
-              legend.style.right = '12px';
-              legend.style.backgroundColor = 'rgba(255, 255, 255, 0.97)';
-              legend.style.borderColor = '#cbd5e1';
-              legend.style.color = '#0f172a';
-              legend.style.boxShadow = '0 4px 12px rgba(0,0,0,0.06)';
-              legend.querySelectorAll('.text-gray-300, .text-slate-300').forEach(el => (el as HTMLElement).style.color = '#0f172a');
-              legend.querySelectorAll('.text-gray-400, .text-slate-400').forEach(el => (el as HTMLElement).style.color = '#475569');
-            }
-
-            const ignoreBtns = clonedDoc.querySelectorAll('button');
-            ignoreBtns.forEach(btn => btn.style.display = 'none');
           }
-        }
-      });
-
-      setPdfExportStatus({
-        stage: 'Diagramação de Pranchas A4',
-        progress: 70,
-        detail: 'Calculando paginação e fatiamento sem perdas (lossless PNG)...'
-      });
-      await new Promise(resolve => setTimeout(resolve, 50));
-
-      // 2. Initialize Landscape A4 PDF
-      const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: 'a4',
-        compress: true
-      });
-
-      const pageWidth = pdf.internal.pageSize.getWidth(); // 297mm
-      const pageHeight = pdf.internal.pageSize.getHeight(); // 210mm
-      const margin = 12; // mm
-      const availableWidth = pageWidth - (margin * 2); // 273mm
-      const headerHeightP1 = 37; // mm
-      const headerHeightSub = 14; // mm
-      const footerHeight = 10; // mm
-
-      // Pixels per mm in the rendered canvas
-      const pxPerMm = canvas.width / availableWidth;
-
-      // Available printable height per page
-      const printableHeightP1 = pageHeight - headerHeightP1 - footerHeight - margin;
-      const printableHeightSub = pageHeight - headerHeightSub - footerHeight - margin;
-
-      const sliceHeightPxP1 = Math.floor(printableHeightP1 * pxPerMm);
-      const sliceHeightPxSub = Math.floor(printableHeightSub * pxPerMm);
-
-      const totalPages = canvas.height <= sliceHeightPxP1 
-        ? 1 
-        : 1 + Math.ceil((canvas.height - sliceHeightPxP1) / sliceHeightPxSub);
-
-      const dateStr = new Date().toLocaleString('pt-BR');
-      const fontDisplayName = fonts[MethodType.ORIGINAL]?.fontObj?.names?.fontFamily?.en || labelOriginal || 'Fonte';
-      const viewModeLabel = viewMode === 'side-by-side' ? 'Comparação Lado a Lado' : 'Sobreposição Óptica (Overlay)';
-
-      // Helper function to draw Header
-      const drawHeader = (pageNum: number) => {
-        pdf.setFillColor(255, 255, 255);
-        if (pageNum === 1) {
-          pdf.rect(0, 0, pageWidth, headerHeightP1, 'F');
-          
-          // Top accent brand band (System Blue #2563eb and Indigo #4f46e5)
-          pdf.setFillColor(37, 99, 235);
-          pdf.rect(margin, 0, (pageWidth - (margin * 2)) * 0.65, 1.2, 'F');
-          pdf.setFillColor(79, 70, 229);
-          pdf.rect(margin + (pageWidth - (margin * 2)) * 0.65, 0, (pageWidth - (margin * 2)) * 0.35, 1.2, 'F');
-
-          // Hairline rule under header
-          pdf.setDrawColor(226, 232, 240); // slate-200
-          pdf.setLineWidth(0.35);
-          pdf.line(margin, headerHeightP1 - 2, pageWidth - margin, headerHeightP1 - 2);
-
-          // Brand Title
-          pdf.setTextColor(15, 23, 42); // slate-900
-          pdf.setFontSize(13);
-          pdf.setFont("helvetica", "bold");
-          pdf.text("SAAME TYPOGRAPHY LAB", margin, 9);
-
-          // Technical Badge pill on right side in system colors
-          pdf.setFillColor(239, 246, 255); // blue-50
-          pdf.setDrawColor(191, 219, 254); // blue-200
-          pdf.setLineWidth(0.2);
-          const badgeText = `PADRÃO EDITORIAL HD • ${achievedDpi} DPI • A4 PAISAGEM`;
-          const badgeWidth = (pdf.getStringUnitWidth(badgeText) * 6.5 / pdf.internal.scaleFactor) + 6;
-          const badgeX = pageWidth - margin - badgeWidth;
-          pdf.roundedRect(badgeX, 5, badgeWidth, 5.5, 1.2, 1.2, 'FD');
-          pdf.setTextColor(29, 78, 216); // blue-700
-          pdf.setFontSize(6.5);
-          pdf.setFont("helvetica", "bold");
-          pdf.text(badgeText, badgeX + 3, 8.8);
-
-          // Subtitle
-          pdf.setFontSize(7.5);
-          pdf.setFont("helvetica", "normal");
-          pdf.setTextColor(100, 116, 139); // slate-500
-          pdf.text("SISTEMA DE ANÁLISE E APLICAÇÃO DE MÉTODOS DE ESPAÇAMENTO TIPOGRÁFICO", margin, 13.5);
-
-          // Metadata Grid: Column 1 (Font & View)
-          pdf.setFontSize(8);
-          pdf.setTextColor(30, 41, 59); // slate-800
-          pdf.setFont("helvetica", "bold");
-          pdf.text("FONTE / ESPÉCIME:", margin, 20);
-          pdf.setFont("helvetica", "normal");
-          pdf.setTextColor(71, 85, 105);
-          pdf.text(`${fontDisplayName} (${viewModeLabel})`, margin, 24.5);
-          pdf.text(`Data da Emissão: ${dateStr}`, margin, 29);
-
-          // Metadata Grid: Column 2 (Parameters)
-          const col2X = margin + 85;
-          pdf.setFont("helvetica", "bold");
-          pdf.setTextColor(30, 41, 59);
-          pdf.text("PARÂMETROS TIPOGRÁFICOS:", col2X, 20);
-          pdf.setFont("helvetica", "normal");
-          pdf.setTextColor(71, 85, 105);
-          pdf.text(`Corpo: ${fontSize}px  •  Entrelinha: ${lineHeight}em  •  Matriz: ${achievedDpi} DPI`, col2X, 24.5);
-          const casingText = textCase === 'uppercase' ? 'Caixa Alta (MAIÚSCULAS)' : textCase === 'lowercase' ? 'Caixa Baixa (minúsculas)' : 'Caixa Normal';
-          const alignText = textAlign === 'left' ? 'À Esquerda' : textAlign === 'center' ? 'Centralizado' : textAlign === 'right' ? 'À Direita' : 'Justificado';
-          pdf.text(`Caixa: ${casingText}  •  Alinhamento: ${alignText}`, col2X, 29);
-
-          // Metadata Grid: Column 3 (Legend)
-          const col3X = margin + 175;
-          pdf.setFont("helvetica", "bold");
-          pdf.setTextColor(30, 41, 59);
-          pdf.text("MÉTODOS ANALISADOS:", col3X, 20);
-          pdf.setFont("helvetica", "normal");
-
-          let legX = col3X;
-          let legY = 24.5;
-          activeMethods.forEach((method) => {
-            if (method === MethodType.ORIGINAL) {
-              pdf.setFillColor(148, 163, 184); // slate-400
-              pdf.rect(legX, legY - 2.5, 2.5, 2.5, 'F');
-              pdf.setTextColor(71, 85, 105);
-              pdf.text("Original", legX + 4, legY);
-            } else if (method === MethodType.ORIGINAL_CUSTOM) {
-              pdf.setFillColor(59, 130, 246); // blue-500
-              pdf.rect(legX, legY - 2.5, 2.5, 2.5, 'F');
-              pdf.setTextColor(71, 85, 105);
-              pdf.text("Manual", legX + 4, legY);
-            } else if (method === MethodType.TRACY) {
-              pdf.setFillColor(236, 72, 153); // pink-500
-              pdf.rect(legX, legY - 2.5, 2.5, 2.5, 'F');
-              pdf.setTextColor(71, 85, 105);
-              pdf.text(isCompareMode ? 'Experimental' : 'Tracy', legX + 4, legY);
-            } else if (method === MethodType.SOUSA) {
-              pdf.setFillColor(6, 182, 212); // cyan-500
-              pdf.rect(legX, legY - 2.5, 2.5, 2.5, 'F');
-              pdf.setTextColor(71, 85, 105);
-              pdf.text("Sousa", legX + 4, legY);
-            }
-            legX += 23;
-          });
-        } else {
-          // Running header on page 2+
-          pdf.rect(0, 0, pageWidth, headerHeightSub, 'F');
-          
-          // Accent line in system blue
-          pdf.setFillColor(37, 99, 235);
-          pdf.rect(margin, 0, pageWidth - (margin * 2), 0.8, 'F');
-
-          pdf.setDrawColor(226, 232, 240);
-          pdf.setLineWidth(0.25);
-          pdf.line(margin, headerHeightSub - 2, pageWidth - margin, headerHeightSub - 2);
-
-          pdf.setTextColor(15, 23, 42);
-          pdf.setFontSize(8.5);
-          pdf.setFont("helvetica", "bold");
-          pdf.text("SAAME TYPOGRAPHY LAB", margin, 7.5);
-
-          pdf.setFont("helvetica", "normal");
-          pdf.setTextColor(100, 116, 139);
-          pdf.text(`•  ${fontDisplayName}  •  ${viewModeLabel}  (Continuação)`, margin + 45, 7.5);
-        }
-      };
-
-      // Helper function to draw Footer
-      const drawFooter = (pageNum: number) => {
-        const footerY = pageHeight - 6;
-        pdf.setDrawColor(226, 232, 240);
-        pdf.setLineWidth(0.25);
-        pdf.line(margin, footerY - 3, pageWidth - margin, footerY - 3);
-
-        pdf.setFontSize(7);
-        pdf.setFont("helvetica", "normal");
-        pdf.setTextColor(148, 163, 184); // slate-400
-        pdf.text(`SAAME Typography Lab • Sistema de Aplicação e Análise de Métodos de Espaçamento • Resolução HD (${achievedDpi} DPI)`, margin, footerY);
-
-        const pageStr = `Página ${pageNum} de ${totalPages}`;
-        const pageStrWidth = pdf.getStringUnitWidth(pageStr) * 7 / pdf.internal.scaleFactor;
-        pdf.text(pageStr, pageWidth - margin - pageStrWidth, footerY);
-      };
-
-      // Page Slicing Loop:
-      let currentSourceY = 0;
-      for (let p = 1; p <= totalPages; p++) {
-        if (p > 1) {
-          pdf.addPage();
-        }
-
-        const startY = p === 1 ? headerHeightP1 : headerHeightSub;
-        const maxSlicePx = p === 1 ? sliceHeightPxP1 : sliceHeightPxSub;
-        const remainingPx = canvas.height - currentSourceY;
-        const currentSliceHeightPx = Math.min(maxSlicePx, remainingPx);
-
-        if (currentSliceHeightPx <= 0) break;
-
-        // Slice canvas via temporary offscreen canvas with bit-perfect 1:1 pixel transfer (no resampling blur)
-        const sliceCanvas = document.createElement('canvas');
-        sliceCanvas.width = canvas.width;
-        sliceCanvas.height = currentSliceHeightPx;
-        const sCtx = sliceCanvas.getContext('2d', { alpha: false });
-        if (sCtx) {
-          sCtx.imageSmoothingEnabled = false; // 1:1 pixel copy without interpolation blur
-          sCtx.fillStyle = '#ffffff';
-          sCtx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-          sCtx.drawImage(
-            canvas,
-            0, currentSourceY, canvas.width, currentSliceHeightPx,
-            0, 0, canvas.width, currentSliceHeightPx
-          );
-        }
-
-        // Lossless PNG for razor-sharp HD letterforms
-        const sliceData = sliceCanvas.toDataURL('image/png');
-        const sliceHeightMm = currentSliceHeightPx / pxPerMm;
-
-        pdf.addImage(sliceData, 'PNG', margin, startY, availableWidth, sliceHeightMm, undefined, 'FAST');
-
-        drawHeader(p);
-        drawFooter(p);
-
-        currentSourceY += currentSliceHeightPx;
-
-        setPdfExportStatus({
-          stage: 'Compondo Pranchas',
-          progress: Math.min(94, Math.round(70 + (p / totalPages) * 22)),
-          detail: `Processando prancha ${p} de ${totalPages} em alta resolução...`
         });
+
+        // ========================================================
+        // ESCONDE ELEMENTOS QUE NÃO DEVEM APARECER NO PDF
+        // ========================================================
+
+        const elementsToHide =
+          clonedElement.querySelectorAll(
+            '[data-pdf-hide="true"]'
+          );
+
+        elementsToHide.forEach((element) => {
+          (element as HTMLElement).style.display = 'none';
+        });
+
+        // ========================================================
+        // MOSTRA ELEMENTOS EXCLUSIVOS DO PDF
+        // ========================================================
+
+        const elementsToShow =
+          clonedElement.querySelectorAll(
+            '[data-pdf-show="true"]'
+          );
+
+        elementsToShow.forEach((element) => {
+          (element as HTMLElement).style.display = 'block';
+        });
+
+        // ========================================================
+        // EVITA QUE O BACKGROUND SEJA TRANSPARENTE
+        // ========================================================
+
+        clonedElement.style.backgroundColor = '#ffffff';
+
+        // ========================================================
+        // GARANTE QUE IMAGENS TERMINEM DE CARREGAR
+        // ========================================================
+
+        const images =
+          clonedElement.querySelectorAll('img');
+
+        images.forEach((img) => {
+          img.style.maxWidth = '100%';
+        });
+      },
+    });
+
+    // ============================================================
+    // VALIDAÇÃO DO CANVAS
+    // ============================================================
+
+    if (!canvas.width || !canvas.height) {
+      throw new Error(
+        'Não foi possível gerar o canvas para o PDF.'
+      );
+    }
+
+    // ============================================================
+    // CRIA PDF A4
+    // ============================================================
+    setPdfExportStatus({
+      stage: 'Processamento PDF',
+      progress: 50,
+      detail: 'Diagramando páginas e metadados...'
+    });
+
+    const { jsPDF } = await import('jspdf');
+
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+      compress: true,
+    });
+
+    // ============================================================
+    // CONVERSÃO PIXEL → MILÍMETRO
+    // ============================================================
+
+    // O canvas inteiro será escalado para ocupar exatamente
+    // a largura útil da página.
+    const pxPerMm =
+      canvas.width / CONTENT_WIDTH_MM;
+
+    // Altura real do canvas em milímetros.
+    const totalHeightMm =
+      canvas.height / pxPerMm;
+
+    // ============================================================
+    // QUANTIDADE DE PÁGINAS
+    // ============================================================
+
+    const totalPages = Math.max(
+      1,
+      Math.ceil(
+        totalHeightMm / CONTENT_HEIGHT_MM
+      )
+    );
+
+    // ============================================================
+    // FUNÇÃO PARA DESENHAR CABEÇALHO
+    // ============================================================
+
+    const drawHeader = (pageNumber: number) => {
+      pdf.setTextColor(29, 17, 48);
+
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(9);
+
+      pdf.text(
+        'SAAME — Sistema de Análise e Aplicação de Métodos de Espaçamento Tipográfico',
+        MARGIN_MM,
+        7
+      );
+
+      pdf.setDrawColor(220, 220, 220);
+      pdf.setLineWidth(0.25);
+
+      pdf.line(
+        MARGIN_MM,
+        HEADER_HEIGHT_MM - 3,
+        PAGE_WIDTH_MM - MARGIN_MM,
+        HEADER_HEIGHT_MM - 3
+      );
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(7);
+
+      pdf.setTextColor(100, 100, 100);
+
+      pdf.text(
+        `Página ${pageNumber} de ${totalPages}`,
+        PAGE_WIDTH_MM - MARGIN_MM,
+        7,
+        {
+          align: 'right',
+        }
+      );
+    };
+
+    // ============================================================
+    // FUNÇÃO PARA DESENHAR RODAPÉ
+    // ============================================================
+
+    const drawFooter = () => {
+      const footerY =
+        PAGE_HEIGHT_MM - MARGIN_MM + 1;
+
+      pdf.setDrawColor(220, 220, 220);
+      pdf.setLineWidth(0.25);
+
+      pdf.line(
+        MARGIN_MM,
+        footerY - 4,
+        PAGE_WIDTH_MM - MARGIN_MM,
+        footerY - 4
+      );
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(6.5);
+
+      pdf.setTextColor(120, 120, 120);
+
+      pdf.text(
+        'SAAME — Sistema de Análise e Aplicação de Métodos de Espaçamento Tipográfico',
+        MARGIN_MM,
+        footerY
+      );
+    };
+
+    // ============================================================
+    // GERAÇÃO DAS PÁGINAS
+    // ============================================================
+
+    for (
+      let pageIndex = 0;
+      pageIndex < totalPages;
+      pageIndex++
+    ) {
+      setPdfExportStatus({
+        stage: 'Gerando Páginas',
+        progress: 50 + Math.floor((pageIndex / totalPages) * 45),
+        detail: `Renderizando página ${pageIndex + 1} de ${totalPages}...`
+      });
+
+      if (pageIndex > 0) {
+        pdf.addPage();
       }
 
-      setPdfExportStatus({
-        stage: 'Finalizando Documento',
-        progress: 98,
-        detail: 'Gravando metadados e gerando download do arquivo PDF HD...'
-      });
-      await new Promise(resolve => setTimeout(resolve, 80));
+      drawHeader(pageIndex + 1);
+      drawFooter();
 
-      const finalFileName = (typeof customName === 'string' && customName.length > 0) ? customName : `Relatorio_Analise_${Date.now()}`;
-      pdf.save(finalFileName.toLowerCase().endsWith('.pdf') ? finalFileName : `${finalFileName}.pdf`);
+      // ----------------------------------------------------------
+      // ALTURA DESTA FATIA
+      // ----------------------------------------------------------
 
-      setPdfExportStatus({
-        stage: 'Concluído!',
-        progress: 100,
-        detail: 'Download do relatório em alta definição concluído com sucesso!'
-      });
-      await new Promise(resolve => setTimeout(resolve, 350));
-    } catch (error) {
-      console.error("PDF Generation failed:", error);
-      alert("Falha ao gerar PDF de alta definição. Verifique o console para mais detalhes.");
-    } finally {
-      setIsExportingPdf(false);
+      const startYmm =
+        pageIndex * CONTENT_HEIGHT_MM;
+
+      const remainingHeightMm =
+        totalHeightMm - startYmm;
+
+      const currentHeightMm =
+        Math.min(
+          CONTENT_HEIGHT_MM,
+          remainingHeightMm
+        );
+
+      // ----------------------------------------------------------
+      // CONVERSÃO PARA PIXELS
+      // ----------------------------------------------------------
+
+      const startYPx = Math.floor(
+        startYmm * pxPerMm
+      );
+
+      const sliceHeightPx = Math.min(
+        Math.ceil(currentHeightMm * pxPerMm),
+        canvas.height - startYPx
+      );
+
+      if (sliceHeightPx <= 0) {
+        continue;
+      }
+
+      // ----------------------------------------------------------
+      // CRIA CANVAS DA PÁGINA
+      // ----------------------------------------------------------
+
+      const pageCanvas =
+        document.createElement('canvas');
+
+      pageCanvas.width = canvas.width;
+      pageCanvas.height = sliceHeightPx;
+
+      const pageContext =
+        pageCanvas.getContext('2d');
+
+      if (!pageContext) {
+        throw new Error(
+          'Não foi possível criar o contexto do canvas.'
+        );
+      }
+
+      pageContext.fillStyle = '#ffffff';
+
+      pageContext.fillRect(
+        0,
+        0,
+        pageCanvas.width,
+        pageCanvas.height
+      );
+
+      // ----------------------------------------------------------
+      // COPIA A FATIA DO CANVAS ORIGINAL
+      // ----------------------------------------------------------
+
+      pageContext.drawImage(
+        canvas,
+
+        // origem no canvas original
+        0,
+        startYPx,
+
+        canvas.width,
+        sliceHeightPx,
+
+        // destino
+        0,
+        0,
+
+        canvas.width,
+        sliceHeightPx
+      );
+
+      // ----------------------------------------------------------
+      // CONVERTE PARA PNG
+      // ----------------------------------------------------------
+
+      const imageData =
+        pageCanvas.toDataURL(
+          'image/png',
+          1.0
+        );
+
+      // ----------------------------------------------------------
+      // ADICIONA AO PDF
+      // ----------------------------------------------------------
+
+      pdf.addImage(
+        imageData,
+        'PNG',
+        MARGIN_MM,
+        MARGIN_MM + HEADER_HEIGHT_MM,
+        CONTENT_WIDTH_MM,
+        currentHeightMm,
+        undefined,
+        'FAST'
+      );
     }
-  };
 
+    // ============================================================
+    // METADADOS
+    // ============================================================
+
+    pdf.setProperties({
+      title:
+        'SAAME — Análise e Aplicação de Métodos de Espaçamento Tipográfico',
+
+      subject:
+        'Relatório de análise tipográfica',
+
+      author:
+        'SAAME',
+
+      creator:
+        'SAAME',
+
+      keywords:
+        'tipografia, espaçamento, sidebearing, Tracy, Sousa, SAAME',
+    });
+
+    // ============================================================
+    // DOWNLOAD
+    // ============================================================
+
+    const timestamp =
+      new Date()
+        .toISOString()
+        .replace(/[:.]/g, '-');
+
+    pdf.save(
+      `SAAME-analise-${timestamp}.pdf`
+    );
+
+    setPdfExportStatus({
+      stage: 'Concluído',
+      progress: 100,
+      detail: 'Relatório exportado com sucesso.'
+    });
+  } catch (error) {
+    console.error(
+      'Erro ao gerar PDF:',
+      error
+    );
+
+    // Se você já possui um sistema de toast/alert,
+    // substitua por ele aqui.
+    alert(
+      'Não foi possível gerar o PDF. Verifique o console para mais detalhes.'
+    );
+
+  } finally {
+    setIsExportingPdf(false);
+  }
+};
   const ComparativeMetricsView = React.memo(({ category }: { category: 'Uppercase' | 'Lowercase' }) => {
       const allChars = category === 'Uppercase' ? "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('') : "abcdefghijklmnopqrstuvwxyz".split('');
       
@@ -1452,7 +1422,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
   });
 
   return (
-    <div className="flex flex-col flex-1 w-full min-h-[650px] dark:bg-gray-900 bg-gray-100 rounded-xl border dark:border-gray-700 border-gray-300 shadow-xl overflow-hidden touch-pan-y touch-pan-x">
+    <div className={`flex flex-col flex-1 w-full min-h-[650px] dark:bg-gray-900 bg-gray-100 rounded-xl border dark:border-gray-700 border-gray-300 shadow-xl overflow-hidden touch-pan-y touch-pan-x ${isExportingPdf ? 'cursor-wait' : ''}`}>
        {/* Inject Local Styles to enforce precision within this canvas context */}
        <style>
             {fontFacesCSS}
@@ -1715,8 +1685,61 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
              <div 
                 ref={exportRef} 
                 data-export-target="true"
-                className={`flex gap-0 min-h-full min-w-full divide-x divide-gray-800 dark:bg-gray-950 bg-gray-50 overflow-visible touch-scroll-area touch-pan-y touch-pan-x`}
+                className="flex flex-col min-h-full min-w-full dark:bg-gray-950 bg-gray-50 overflow-visible"
              >
+                {/* PDF Legend (Hidden in UI) */}
+                <div className="hidden pdf-only-legend mb-8 w-full p-8 border-b-2 border-gray-100 bg-white relative overflow-hidden" data-pdf-show="true">
+                    <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600"></div>                    
+                    <div className="grid grid-cols-3 gap-12">
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest">FONTE / ESPÉCIME:</p>
+                            <p className="text-sm text-gray-500 font-medium">{fonts[MethodType.ORIGINAL]?.fontObj?.names?.fontFamily?.en || 'Original'} (Comparação Lado a Lado)</p>
+                            <p className="text-[10px] text-gray-400">Data da Emissão: {new Date().toLocaleString('pt-BR')}</p>
+                        </div>
+
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest">PARÂMETROS TIPOGRÁFICOS:</p>
+                            <p className="text-sm text-gray-500 font-medium">
+                                Corpo: {fontSize}px • Entrelinha: {lineHeight}em • Matriz: 300 DPI
+                            </p>
+                            <p className="text-sm text-gray-500 font-medium">
+                                Caixa: {textCase === 'normal' ? 'Caixa Normal' : textCase === 'uppercase' ? 'Caixa Alta' : 'Caixa Baixa'} • Alinhamento: {textAlign === 'left' ? 'À Esquerda' : textAlign === 'center' ? 'Centralizado' : 'À Direita'}
+                            </p>
+                        </div>
+
+                        <div className="space-y-3">
+                            <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest">MÉTODOS ANALISADOS:</p>
+                            <div className="flex flex-wrap gap-x-6 gap-y-2">
+                                {activeMethods.includes(MethodType.ORIGINAL) && (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 bg-gray-400 rounded-sm"></div>
+                                        <span className="text-xs text-gray-600 font-bold uppercase tracking-tighter">{labelOriginal}</span>
+                                    </div>
+                                )}
+                                {activeMethods.includes(MethodType.ORIGINAL_CUSTOM) && (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 bg-blue-600 rounded-sm"></div>
+                                        <span className="text-xs text-gray-600 font-bold uppercase tracking-tighter">Manual</span>
+                                    </div>
+                                )}
+                                {activeMethods.includes(MethodType.TRACY) && (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 bg-pink-500 rounded-sm"></div>
+                                        <span className="text-xs text-gray-600 font-bold uppercase tracking-tighter">Tracy</span>
+                                    </div>
+                                )}
+                                {activeMethods.includes(MethodType.SOUSA) && (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 bg-teal-500 rounded-sm"></div>
+                                        <span className="text-xs text-gray-600 font-bold uppercase tracking-tighter">Sousa</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className={`flex gap-0 min-h-full min-w-full divide-x divide-gray-800 overflow-visible touch-scroll-area touch-pan-y touch-pan-x`}>
                 {/* 1. Original */}
                 {activeMethods.includes(MethodType.ORIGINAL) && (
                 <div className={`flex flex-col flex-1 dark:bg-gray-900/30 bg-gray-100/30 order-1 overflow-visible ${activeMethods.length === 1 ? 'min-w-full' : activeMethods.length === 2 ? 'min-w-[320px] sm:min-w-[420px] md:min-w-[48%]' : activeMethods.length === 3 ? 'min-w-[300px] sm:min-w-[360px] md:min-w-[32%]' : 'min-w-[280px] sm:min-w-[320px] md:min-w-[24%]'} shrink-0`}>
@@ -1780,6 +1803,7 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                      </div>
                 </div>
                 )}
+                </div>
              </div>
         )}
 
@@ -1833,6 +1857,58 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                 data-export-target="true"
                 className="min-h-full w-full relative flex flex-col items-center justify-start dark:bg-gray-950 bg-gray-50 p-4 sm:p-8 overflow-visible"
              >
+                {/* PDF Legend (Hidden in UI) */}
+                <div className="hidden pdf-only-legend mb-8 w-full p-8 border-b-2 border-gray-100 bg-white relative overflow-hidden" data-pdf-show="true">
+                    <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600"></div>
+
+                    <div className="grid grid-cols-3 gap-12">
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest">FONTE / ESPÉCIME:</p>
+                            <p className="text-sm text-gray-500 font-medium">{fonts[MethodType.ORIGINAL]?.fontObj?.names?.fontFamily?.en || 'Original'} (Sobreposição)</p>
+                            <p className="text-[10px] text-gray-400">Data da Emissão: {new Date().toLocaleString('pt-BR')}</p>
+                        </div>
+
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest">PARÂMETROS TIPOGRÁFICOS:</p>
+                            <p className="text-sm text-gray-500 font-medium">
+                                Corpo: {debouncedFontSize}px • Entrelinha: {debouncedLineHeight}em • Matriz: 300 DPI
+                            </p>
+                            <p className="text-sm text-gray-500 font-medium">
+                                Caixa: {textCase === 'normal' ? 'Caixa Normal' : textCase === 'uppercase' ? 'Caixa Alta' : 'Caixa Baixa'} • Alinhamento: {textAlign === 'left' ? 'À Esquerda' : textAlign === 'center' ? 'Centralizado' : 'À Direita'}
+                            </p>
+                        </div>
+
+                        <div className="space-y-3">
+                            <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest">MÉTODOS ANALISADOS:</p>
+                            <div className="flex flex-wrap gap-x-6 gap-y-2">
+                                {activeMethods.includes(MethodType.ORIGINAL) && (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 bg-gray-400 rounded-sm"></div>
+                                        <span className="text-xs text-gray-600 font-bold uppercase tracking-tighter">{labelOriginal}</span>
+                                    </div>
+                                )}
+                                {activeMethods.includes(MethodType.ORIGINAL_CUSTOM) && (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 bg-blue-600 rounded-sm"></div>
+                                        <span className="text-xs text-gray-600 font-bold uppercase tracking-tighter">Manual</span>
+                                    </div>
+                                )}
+                                {activeMethods.includes(MethodType.TRACY) && (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 bg-pink-500 rounded-sm"></div>
+                                        <span className="text-xs text-gray-600 font-bold uppercase tracking-tighter">Tracy</span>
+                                    </div>
+                                )}
+                                {activeMethods.includes(MethodType.SOUSA) && (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 bg-teal-500 rounded-sm"></div>
+                                        <span className="text-xs text-gray-600 font-bold uppercase tracking-tighter">Sousa</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div className="flex flex-wrap gap-3 w-full justify-start mb-6" data-html2canvas-ignore>
                      {activeMethods.includes(MethodType.ORIGINAL) && (
                      <div className="flex items-center gap-2 px-3 py-1.5 dark:bg-gray-900 bg-gray-100 border dark:border-gray-800 border-gray-200 rounded-lg">
@@ -2443,6 +2519,36 @@ export const AnalysisCanvas: React.FC<AnalysisCanvasProps> = ({
                                         <span className="absolute right-4 text-xs font-mono font-bold text-slate-400 select-none">
                                             .pdf
                                         </span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-black uppercase tracking-wider dark:text-slate-400 text-slate-500 mb-2 truncate">
+                                        Qualidade da Exportação
+                                    </label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {[
+                                            { id: 'draft', label: 'Rascunho', desc: 'Rápido', color: 'bg-blue-500' },
+                                            { id: 'standard', label: 'Padrão', desc: 'HD', color: 'bg-zinc-900 dark:bg-white' },
+                                            { id: 'high', label: 'Premium', desc: 'Ultra-HD', color: 'bg-amber-500' }
+                                        ].map((q) => (
+                                            <button
+                                                key={q.id}
+                                                onClick={() => setExportQuality(q.id as any)}
+                                                className={`flex flex-col items-center gap-0.5 p-3 rounded-2xl border transition-all ${
+                                                    exportQuality === q.id 
+                                                        ? 'dark:border-zinc-400 border-zinc-900 dark:bg-zinc-800 bg-zinc-100 shadow-md ring-2 ring-zinc-500/20' 
+                                                        : 'dark:border-slate-800 border-slate-200 dark:bg-slate-900 bg-white hover:bg-slate-50 dark:hover:bg-slate-800 opacity-60'
+                                                }`}
+                                            >
+                                                <span className={`text-[10px] font-black uppercase tracking-widest ${exportQuality === q.id ? 'dark:text-white text-zinc-900' : 'text-slate-400'}`}>
+                                                    {q.label}
+                                                </span>
+                                                <span className="text-[9px] dark:text-zinc-500 text-zinc-400 font-bold uppercase tracking-tighter italic">
+                                                    {q.desc}
+                                                </span>
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
                             </div>

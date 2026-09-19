@@ -366,8 +366,8 @@ export const OriginalCustomTuner: React.FC<{
                         </div>
                         
                         {/* Right Col: Visualizer */}
-                        <div className="flex flex-col min-h-0">
-                            <div className="flex items-center justify-between mb-2">
+                        <div className="flex flex-col h-full space-y-3">
+                            <div className="flex items-center justify-between shrink-0">
                                 <h3 className="text-sm font-black dark:text-zinc-400 text-zinc-600 uppercase tracking-widest flex items-center gap-2">
                                     <Layers className="w-3.5 h-3.5" /> ANÁLISE GEOMÉTRICA
                                 </h3>
@@ -390,14 +390,33 @@ export const OriginalCustomTuner: React.FC<{
                                     />
                                 </div>
                             </div>
-                            <div className="flex-1 dark:bg-zinc-900 bg-white rounded-3xl border dark:border-zinc-800 border-zinc-200 overflow-hidden min-h-[250px] shadow-sm flex flex-col p-4">
-                                <div className="flex-1 border dark:border-zinc-800 border-zinc-100 rounded-2xl overflow-hidden shadow-inner">
-                                    <GlyphVisualizer 
-                                        char={editingChar} 
-                                        font={font} 
-                                        lsb={metrics.lsb} 
-                                        rsb={metrics.rsb} 
-                                    />
+                            <div className="h-[320px] md:h-[360px] w-full shrink-0">
+                                <GlyphVisualizer 
+                                    char={editingChar} 
+                                    font={font} 
+                                    lsb={metrics.lsb} 
+                                    rsb={metrics.rsb} 
+                                />
+                            </div>
+
+                            {/* Metric Info Summary */}
+                            <div className="grid grid-cols-3 gap-3 pt-1">
+                                <div className="text-center p-3 rounded-xl dark:bg-zinc-900 bg-white border dark:border-zinc-800 border-zinc-200 shadow-sm relative overflow-hidden">
+                                    <div className="absolute top-0 left-0 right-0 h-1 bg-blue-500" />
+                                    <div className="text-xs uppercase tracking-widest dark:text-zinc-400 text-zinc-500 font-black mb-0.5">LSB</div>
+                                    <div className="text-xl font-mono font-bold text-zinc-950 dark:text-white">{metrics.lsb}</div>
+                                </div>
+                                <div className="text-center p-3 rounded-xl dark:bg-zinc-900 bg-white border dark:border-zinc-800 border-zinc-200 shadow-sm relative overflow-hidden">
+                                    <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500" />
+                                    <div className="text-xs uppercase tracking-widest dark:text-zinc-400 text-zinc-500 font-black mb-0.5">RSB</div>
+                                    <div className="text-xl font-mono font-bold text-zinc-950 dark:text-white">{metrics.rsb}</div>
+                                </div>
+                                <div className="text-center p-3 rounded-xl dark:bg-zinc-900 bg-white border dark:border-zinc-800 border-zinc-200 shadow-sm relative overflow-hidden">
+                                    <div className="absolute top-0 left-0 right-0 h-1 bg-zinc-400 dark:bg-zinc-600" />
+                                    <div className="text-xs uppercase tracking-widest dark:text-zinc-400 text-zinc-500 font-black mb-0.5">AVANÇO</div>
+                                    <div className="text-xl font-mono font-bold text-zinc-950 dark:text-white">
+                                        {Math.round(metrics.advanceWidth || 0)}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -429,7 +448,7 @@ export const OriginalCustomTuner: React.FC<{
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0">
                     {/* Visualizer Area */}
-                    <div className="dark:bg-zinc-900/40 bg-zinc-100/60 p-4 rounded-2xl border dark:border-zinc-800 border-zinc-200 shadow-inner flex flex-col pt-4">
+                    <div className="dark:bg-zinc-900/40 bg-zinc-100/60 p-4 md:p-6 rounded-2xl border dark:border-zinc-800 border-zinc-200 shadow-inner flex flex-col">
                         <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-3 dark:bg-zinc-900 bg-white rounded-xl border dark:border-zinc-800 border-zinc-200">
                             <div className="flex items-center gap-4">
                                 <label className="text-xs font-black uppercase tracking-widest dark:text-zinc-400 text-zinc-600 whitespace-nowrap">SELECIONAR GLIFO:</label>
@@ -469,7 +488,7 @@ export const OriginalCustomTuner: React.FC<{
                                 )}
                             </button>
                         </div>
-                        <div className="flex-1 min-h-[200px] bg-white dark:bg-zinc-900 rounded-2xl border dark:border-zinc-800 border-zinc-200 shadow-sm overflow-hidden mb-4">
+                        <div className="h-[320px] md:h-[360px] w-full shrink-0 mb-4">
                             <GlyphVisualizer 
                                 char={selectedChar} 
                                 font={font} 

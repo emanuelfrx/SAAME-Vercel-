@@ -230,7 +230,7 @@ const SousaMasterBlock: React.FC<SousaBlockProps> = React.memo(({ char, title, c
             </div>
 
             {/* Visualizer */}
-            <div className="h-40 md:h-64 lg:h-auto order-1 lg:order-2 min-h-[200px] md:min-h-[250px]">
+            <div className="h-[320px] md:h-[360px] w-full order-1 lg:order-2 flex flex-col">
                 <GlyphVisualizer 
                     char={char} 
                     font={font} 
@@ -740,9 +740,9 @@ export const SousaTuner: React.FC<SousaTunerProps> = ({ settings, onSettingsChan
                     </div>
                     
                     {/* Visualizer */}
-                    <div className="h-40 md:h-64 lg:h-auto order-1 lg:order-2 flex flex-col min-h-[200px] md:min-h-[250px] dark:bg-zinc-900 bg-white rounded-3xl border dark:border-zinc-800 border-zinc-200 overflow-hidden shadow-sm p-4 relative">
-                        <div className="flex items-center justify-between mb-4 z-10 w-full px-2">
-                            <h3 className="text-xs font-black dark:text-zinc-400 text-zinc-600 uppercase tracking-widest flex items-center gap-2">
+                    <div className="order-1 lg:order-2 flex flex-col h-full space-y-3">
+                        <div className="flex items-center justify-between shrink-0">
+                            <h3 className="text-sm font-black dark:text-zinc-400 text-zinc-600 uppercase tracking-widest flex items-center gap-2">
                                 <Layers className="w-3.5 h-3.5" /> ANÁLISE GEOMÉTRICA
                             </h3>
                             <div className="flex items-center gap-2">
@@ -759,11 +759,11 @@ export const SousaTuner: React.FC<SousaTunerProps> = ({ settings, onSettingsChan
                                         }
                                     }}
                                     onFocus={(e) => e.target.select()}
-                                    className="bg-zinc-100 dark:bg-zinc-950 border-2 dark:border-zinc-700 border-zinc-400 rounded-lg px-2 py-1 text-center text-lg font-black dark:text-white text-zinc-900 focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white outline-none w-16 shadow-sm transition-all"
+                                    className="bg-white dark:bg-zinc-950 border-2 dark:border-zinc-700 border-zinc-400 rounded-lg px-2 py-1 text-center text-lg font-black dark:text-white text-zinc-900 focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white outline-none w-16 shadow-sm transition-all"
                                 />
                             </div>
                         </div>
-                        <div className="flex-1 w-full relative">
+                        <div className="h-[320px] md:h-[360px] w-full shrink-0">
                             <GlyphVisualizer 
                                 char={overrideChar} 
                                 font={font} 

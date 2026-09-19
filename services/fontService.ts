@@ -1,12 +1,11 @@
-
-import { FontState, MethodType, TracySettings, SousaSettings, OpenTypeFont, OpenTypeGlyph } from '../types';
+import { FontState, MethodType, TracySettings, SousaSettings, OriginalCustomSettings, OpenTypeFont, OpenTypeGlyph } from '../types';
 // Importing directly from unpkg for browser environment compatibility in this setup
 import * as opentype from 'opentype.js';
 
 // --- DIACRITICS MAPPING ---
 // Maps base characters to their accented variations.
 // Used to propagate spacing rules from parent to children automatically.
-const DIACRITICS_MAP: Record<string, string[]> = {
+export const DIACRITICS_MAP: Record<string, string[]> = {
     'A': ['Á','À','Â','Ä','Ã','Å','Ā','Ă','Ą', 'Ǎ', 'Ǻ'],
     'B': ['Ḃ','Ḅ'],
     'C': ['Ç','Ć','Ĉ','Ċ','Č'],
@@ -61,7 +60,10 @@ const DIACRITICS_MAP: Record<string, string[]> = {
     'y': ['ý','ÿ','ŷ','ȳ','ẏ','ỳ'],
     'z': ['ź','ż','ž','ẓ']
 };
-
+export const COVERED_CHARS: Set<string> = new Set([
+    ...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split(''),
+    ...Object.values(DIACRITICS_MAP).flat()
+]);
 /**
  * CACHE SYSTEM FOR HEAVY METRIC CALCULATIONS
  * Persists results of counterform analysis, SB measurements, and glyph path conversions.
@@ -102,7 +104,7 @@ export const getFontCacheKey = (font: any): string => {
 
 
 // Helper to manipulate font binary to avoid opentype.js parsing errors with complex tables
-const stripLayoutTables = (buffer: ArrayBuffer): ArrayBuffer => {
+export const stripLayoutTables = (buffer: ArrayBuffer): ArrayBuffer => {
     try {
         const data = new DataView(buffer);
         // Check for SFNT header (OTTO or true or 0x00010000)
@@ -148,7 +150,7 @@ export const parseFont = async (buffer: ArrayBuffer): Promise<OpenTypeFont> => {
 
 // Helper: Ensure every glyph has a name to prevent "Undefined CHARARRAY" error in opentype.js
 // Enhanced to handle empty strings and sanitize CFF incompatible names
-const ensureGlyphNames = (font: OpenTypeFont) => {
+export const ensureGlyphNames = (font: OpenTypeFont) => {
     if (!font.glyphs || font.glyphs.length === 0) return;
     
     const numGlyphs = font.glyphs.length;
@@ -413,61 +415,63 @@ export const createFontState = async (buffer: ArrayBuffer, type: MethodType): Pr
 };
 
 
-export const downloadFont = (font: OpenTypeFont, type: MethodType, customFileName?: string) => {
+export const downloadFont = (
+    font: OpenTypeFont,
+    type: MethodType,
+    customFileName?: string,
+    rawOriginalBuffer?: ArrayBuffer
+) => {
     try {
-        // 1. Determine safe prefixes for file organization as requested
-        const prefix = type === MethodType.TRACY ? 'Trace' : 
-                       type === MethodType.SOUSA ? 'Souza' : 
+        // Determine safe prefixes for file organization
+        const prefix = type === MethodType.TRACY ? 'Trace' :
+                       type === MethodType.SOUSA ? 'Souza' :
                        type === MethodType.ORIGINAL_CUSTOM ? 'Custom' : '';
-        
-        // 2. Identify the base family name
-        // We try to use the one from the font object defaults if not already mutated
+
         const baseFamilyName = font.names?.fontFamily?.en || font.names?.unicode?.fontFamily?.en || 'Font';
-        
-        // 3. Construct the Export Name (Internal Font Name)
-        // This is what appears in software like Figma/Word/Illustrator
         const exportFamilyName = customFileName || (prefix ? `${prefix} ${baseFamilyName}` : baseFamilyName);
-        
-        // 4. Construct the Filename (.otf)
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-        let fileName = customFileName ? `${customFileName.replace(/\s/g, '_')}.otf` : `${prefix ? prefix + '_' : ''}${baseFamilyName.replace(/\s/g, '_')}_${timestamp}.otf`;
-        
-        // Ensure .otf extension is present
-        if (!fileName.toLowerCase().endsWith('.otf')) {
+        let fileName = customFileName
+            ? `${customFileName.replace(/\s/g, '_')}.otf`
+            : `${prefix ? prefix + '_' : ''}${baseFamilyName.replace(/\s/g, '_')}_${timestamp}.otf`;
+        if (!fileName.toLowerCase().endsWith('.otf') && !fileName.toLowerCase().endsWith('.ttf')) {
             fileName += '.otf';
         }
 
-        // 5. Prepare the font metadata (Internal names table)
-        // We mutate a copy if we could, but here we mutate and hope for the best or assume it's for export
-        prepareFontForExport(font, exportFamilyName);
-        ensureGlyphNames(font);
-        
-        // 6. Force robust tables for export
-        if (!font.tables.post) font.tables.post = {};
-        font.tables.post.version = 3;
-        
-        // Strip layout tables that opentype.js often fails to re-encode
-        if (font.tables.kern) delete font.tables.kern;
-        if (font.tables.gpos) delete font.tables.gpos;
-        if (font.tables.gsub) delete font.tables.gsub;
-        if (font.tables.gdef) delete font.tables.gdef;
+        // --- CAMINHO ESPECIAL: Original sem nenhuma reconstrução ---
+        // Preserva kerning, GSUB/GPOS, hinting e todas as tabelas originais,
+        // já que aqui não passamos pelo opentype.js toArrayBuffer().
+        let buffer: ArrayBuffer;
+        if (type === MethodType.ORIGINAL && rawOriginalBuffer) {
+            buffer = rawOriginalBuffer;
+        } else {
+            prepareFontForExport(font, exportFamilyName);
+            ensureGlyphNames(font);
 
-        // 7. Generate Binary
-        const buffer = silentToArrayBuffer(font);
+            if (!font.tables.post) font.tables.post = {};
+            font.tables.post.version = 3;
+
+            // Aqui a remoção de kern/GPOS/GSUB/GDEF é aceitável: Tracy, Sousa e
+            // Original Customizada realmente reescrevem o espaçamento, então o
+            // kerning nativo entraria em conflito com os novos side bearings.
+            if (font.tables.kern) delete font.tables.kern;
+            if (font.tables.gpos) delete font.tables.gpos;
+            if (font.tables.gsub) delete font.tables.gsub;
+            if (font.tables.gdef) delete font.tables.gdef;
+
+            buffer = silentToArrayBuffer(font);
+        }
+
         if (!buffer || buffer.byteLength === 0) {
             throw new Error("Falha ao gerar o arquivo da fonte.");
         }
 
-        // 8. Trigger Browser Download
         const blob = new Blob([buffer], { type: 'font/opentype' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        
         link.href = url;
         link.download = fileName;
         document.body.appendChild(link);
-        
-        // Small delay to ensure browser handles the interaction context
+
         setTimeout(() => {
             link.click();
             document.body.removeChild(link);
@@ -582,8 +586,12 @@ export const getGlyphData = (font: OpenTypeFont, char: string) => {
 
 // --- NEW: Counter-form Analysis for Visualization ---
 export const getCounterMetrics = (font: OpenTypeFont, char: string) => {
-    const fontFamily = font.names?.fontFamily?.en || font.names?.unicode?.fontFamily?.en || 'Unknown';
-    const cached = MetricsCache.get(fontFamily, char, 'counter_metrics');
+    // Use the versioned cache key (font identity + __fontVersion) instead of the raw
+    // font family name: the family name alone doesn't change when the user edits SB
+    // values via setGlyphSB, so the old key kept returning stale pre-edit counter-form
+    // data after tuning, and could collide between two different fonts sharing a name.
+    const key = getFontCacheKey(font);
+    const cached = MetricsCache.get(key, char, 'counter_metrics');
     if (cached) return cached;
 
     const glyph = font.charToGlyph(char);
@@ -672,7 +680,7 @@ export const getCounterMetrics = (font: OpenTypeFont, char: string) => {
         italicAngle // Pass this out
     };
     
-    MetricsCache.set(fontFamily, char, 'counter_metrics', result);
+    MetricsCache.set(key, char, 'counter_metrics', result);
     return result;
 };
 
@@ -681,8 +689,9 @@ export const getCounterMetrics = (font: OpenTypeFont, char: string) => {
  * to allow for high-fidelity counterform visualization.
  */
 export const getCounterPathData = (font: OpenTypeFont, char: string): string | null => {
-    const fontFamily = font.names?.fontFamily?.en || font.names?.unicode?.fontFamily?.en || 'Unknown';
-    const cached = MetricsCache.get(fontFamily, char, 'counter_path');
+    // Same fix as getCounterMetrics: version-aware key so this invalidates after edits.
+    const key = getFontCacheKey(font);
+    const cached = MetricsCache.get(key, char, 'counter_path');
     if (cached) return cached;
 
     const glyph = font.charToGlyph(char);
@@ -728,7 +737,7 @@ export const getCounterPathData = (font: OpenTypeFont, char: string): string | n
     p.commands = validContours[0];
     const pathData = p.toPathData(2);
     
-    MetricsCache.set(fontFamily, char, 'counter_path', pathData);
+    MetricsCache.set(key, char, 'counter_path', pathData);
     return pathData;
 };
 
@@ -1029,7 +1038,7 @@ export const calculateSousaDefaults = (font: OpenTypeFont) => {
     };
 };
 
-const isAlphabetic = (glyph: OpenTypeGlyph): boolean => {
+export const isAlphabetic = (glyph: OpenTypeGlyph): boolean => {
     if (!glyph.unicode) return false;
     try {
         const charStr = String.fromCodePoint(glyph.unicode);
@@ -1068,7 +1077,13 @@ export const cleanMetrics = (font: OpenTypeFont, onProgress?: (progress: number)
     
     // 2. Preserve Numbers & Non-Alphabetic Characters
     if (!isAlphabetic(glyph)) continue;
-
+    
+    if (glyph.unicode) {
+        try {
+            const char = String.fromCodePoint(glyph.unicode);
+            if (!COVERED_CHARS.has(char)) continue;
+        } catch (e) { /* segue normalmente se não conseguir decodificar */ }
+    }
     if (glyph.unicode || glyph.name) {
        const bounds = glyph.getBoundingBox();
        
@@ -1097,7 +1112,7 @@ export const cleanMetrics = (font: OpenTypeFont, onProgress?: (progress: number)
   if (font.tables.gpos) delete font.tables.gpos;
 };
 
-const setGlyphSB = (font: OpenTypeFont, glyphName: string, lsb: number | null, rsb: number | null) => {
+export const setGlyphSB = (font: OpenTypeFont, glyphName: string, lsb: number | null, rsb: number | null) => {
     const glyph = font.charToGlyph(glyphName);
     if (!glyph || !glyph.path) return;
 const isSpace =
@@ -1302,24 +1317,64 @@ export const TOPOLOGY: Record<string, { l: 'S'|'R'|'A'|'V', r: 'S'|'R'|'A'|'V' }
 };
 
 export const applySousaMethod = (font: OpenTypeFont, settings: SousaSettings): void => {
-    const { n, o, H, O, overrides } = settings;
+    const { n, o, H, O, overrides, groups } = settings;
+
+    // Determine which predictability tier (1 = alta, 2 = parcial, 3 = sem correspondência
+    // estrutural direta) a character belongs to, based on the user-editable groups
+    // (settings.groups). Falls back to tier 1 (direct inheritance, today's behavior) if the
+    // char isn't listed in any group, so unexpected/custom characters don't break.
+    const getTier = (char: string): 1 | 2 | 3 => {
+        const isUpper = char === char.toUpperCase() && char !== char.toLowerCase();
+        if (!groups) return 1;
+        if (isUpper) {
+            if (groups.upperGroup1?.includes(char)) return 1;
+            if (groups.upperGroup2?.includes(char)) return 2;
+            if (groups.upperGroup3?.includes(char)) return 3;
+        } else {
+            if (groups.group1?.includes(char)) return 1;
+            if (groups.group2?.includes(char)) return 2;
+            if (groups.group3?.includes(char)) return 3;
+        }
+        return 1;
+    };
+
+    // "Referência visual": a estimativa neutra e simétrica (média dos mestres), usada como
+    // âncora para a qual o Grupo 2 (previsibilidade parcial) é parcialmente puxado, e que o
+    // Grupo 3 (sem correspondência estrutural direta) usa diretamente — em vez de herdar
+    // literalmente o valor do mestre como se a correspondência de forma fosse exata.
+    const visualRef = (isUpper: boolean): number => {
+        if (isUpper) return Math.round((H.lsb + H.rsb + O.lsb + O.rsb) / 4);
+        return Math.round((n.lsb + n.rsb + o.lsb + o.rsb) / 4);
+    };
 
     // Helper to get value based on topology and case
     const getValue = (char: string, side: 'l'|'r', topoType: 'S'|'R'|'A'|'V'): number => {
         const isUpper = char === char.toUpperCase() && char !== char.toLowerCase();
-        
-        // Masters
+
+        // Masters (base value from topology, as before)
+        let base: number;
         if (isUpper) {
-            if (topoType === 'S') return side === 'l' ? H.lsb : H.rsb; 
-            if (topoType === 'R') return side === 'l' ? O.lsb : O.rsb;
-            if (topoType === 'V') return Math.round((side === 'l' ? H.lsb : H.rsb) * 0.5); // Fallback for uppercase visual
+            if (topoType === 'S') base = side === 'l' ? H.lsb : H.rsb;
+            else if (topoType === 'R') base = side === 'l' ? O.lsb : O.rsb;
+            else if (topoType === 'V') base = Math.round((side === 'l' ? H.lsb : H.rsb) * 0.5); // Fallback for uppercase visual
+            else base = 20;
         } else {
-            if (topoType === 'S') return side === 'l' ? n.lsb : n.rsb; 
-            if (topoType === 'A') return n.rsb; 
-            if (topoType === 'R') return side === 'l' ? o.lsb : o.rsb; 
-            if (topoType === 'V') return Math.round((side === 'l' ? n.lsb : n.rsb) * 0.5); // Fallback for lowercase visual
+            if (topoType === 'S') base = side === 'l' ? n.lsb : n.rsb;
+            else if (topoType === 'A') base = n.rsb;
+            else if (topoType === 'R') base = side === 'l' ? o.lsb : o.rsb;
+            else if (topoType === 'V') base = Math.round((side === 'l' ? n.lsb : n.rsb) * 0.5); // Fallback for lowercase visual
+            else base = 20;
         }
-        return 20; // Safe fallback
+
+        // Modulate by Sousa's predictability tier (settings.groups):
+        // Tier 1: herda o valor mapeado por topologia como está (comportamento original).
+        // Tier 2: mistura 70% valor de topologia / 30% referência visual neutra.
+        // Tier 3: usa a referência visual neutra diretamente (sem herança literal).
+        const tier = getTier(char);
+        if (tier === 1) return base;
+        const ref = visualRef(isUpper);
+        if (tier === 2) return Math.round(base * 0.7 + ref * 0.3);
+        return ref; // tier 3
     };
 
     // 1. Iterate over all characters in topology (A-Z, a-z) and apply rules
